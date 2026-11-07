@@ -1,0 +1,284 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// DATABASE_URL: the connection the app uses (on Neon, the pooled "-pooler" one).
+// DATABASE_URL_UNPOOLED: a direct connection, used only to apply migrations.
+// Docker and local setups use the same address for both.
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum IssueType {
+  EPIC
+  STORY
+  TASK
+  BUG
+  SUBTASK
+}
+
+enum Priority {
+  HIGHEST
+  HIGH
+  MEDIUM
+  LOW
+  LOWEST
+}
+
+enum StatusCategory {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum SprintState {
+  FUTURE
+  ACTIVE
+  CLOSED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  role         Role       @default(MEMBER)
+  createdAt    DateTime   @default(now())
+  assigned     Issue[]    @relation("assignee")
+  reported     Issue[]    @relation("reporter")
+  comments     Comment[]
+  activities   Activity[]
+  ledProjects  Project[]
+  notifications Notification[] @relation("recipient")
+  triggered     Notification[] @relation("notifActor")
+  watching      Issue[]        @relation("watchers")
+  savedFilters  SavedFilter[]
+  attachments   Attachment[]
+  resets        PasswordReset[]
+}
+
+/// Single-use link an admin creates when someone forgets their password (no email server needed).
+model PasswordReset {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+}
+
+model Invite {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  email     String?
+  role      Role      @default(MEMBER)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+}
+
+model Project {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  name         String
+  description  String   @default("")
+  leadId       String?
+  lead         User?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  issueCounter Int      @default(0)
+  color        String   @default("#0e7c66")
+  /// Move issues automatically when linked pull requests open / merge.
+  gitAutomation Boolean @default(true)
+  /// Days an issue can sit in an in-progress column before it is flagged as stale.
+  staleDays    Int      @default(3)
+  createdAt    DateTime @default(now())
+  statuses     Status[]
+  issues       Issue[]
+  sprints      Sprint[]
+}
+
+model Status {
+  id        String         @id @default(cuid())
+  name      String
+  category  StatusCategory
+  position  Int
+  wipLimit  Int?
+  projectId String
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues    Issue[]
+}
+
+model Sprint {
+  id        String      @id @default(cuid())
+  name      String
+  goal      String      @default("")
+  state     SprintState @default(FUTURE)
+  startDate DateTime?
+  endDate   DateTime?
+  projectId String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues    Issue[]
+  createdAt DateTime    @default(now())
+}
+
+model Issue {
+  id          String     @id @default(cuid())
+  number      Int
+  key         String     @unique
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type        IssueType  @default(TASK)
+  title       String
+  description String     @default("")
+  statusId    String
+  status      Status     @relation(fields: [statusId], references: [id])
+  priority    Priority   @default(MEDIUM)
+  assigneeId  String?
+  assignee    User?      @relation("assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  reporterId  String
+  reporter    User       @relation("reporter", fields: [reporterId], references: [id])
+  labels      String[]
+  storyPoints Int?
+  dueDate     DateTime?
+  startDate   DateTime?
+  resolvedAt  DateTime?
+  startedAt   DateTime?
+  statusChangedAt DateTime @default(now())
+  parentId    String?
+  parent      Issue?     @relation("children", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Issue[]    @relation("children")
+  sprintId    String?
+  sprint      Sprint?    @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  rank        Float      @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  comments    Comment[]
+  activities  Activity[]
+  watchers    User[]         @relation("watchers")
+  attachments Attachment[]
+  linksOut    IssueLink[]    @relation("linkFrom")
+  linksIn     IssueLink[]    @relation("linkTo")
+  notifications Notification[]
+  devActivity DevActivity[]
+
+  @@unique([projectId, number])
+  @@index([projectId, statusId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  body      String
+  issueId   String
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  issueId   String
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id])
+  field     String
+  from      String?
+  to        String?
+  createdAt DateTime @default(now())
+}
+
+enum LinkType {
+  BLOCKS
+  RELATES
+  DUPLICATES
+}
+
+model IssueLink {
+  id        String   @id @default(cuid())
+  type      LinkType
+  fromId    String
+  from      Issue    @relation("linkFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String
+  to        Issue    @relation("linkTo", fields: [toId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([fromId, toId, type])
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  issueId    String
+  issue      Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  uploaderId String
+  uploader   User     @relation(fields: [uploaderId], references: [id])
+  filename   String
+  mimeType   String
+  size       Int
+  storageKey String   @unique
+  createdAt  DateTime @default(now())
+}
+
+enum NotificationKind {
+  ASSIGNED
+  MENTIONED
+  COMMENTED
+  STATUS_CHANGED
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation("recipient", fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String
+  actor     User             @relation("notifActor", fields: [actorId], references: [id], onDelete: Cascade)
+  issueId   String
+  issue     Issue            @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  kind      NotificationKind
+  message   String
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt])
+}
+
+model SavedFilter {
+  id        String   @id @default(cuid())
+  name      String
+  projectId String?
+  query     String
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  shared    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+enum DevKind {
+  BRANCH
+  COMMIT
+  PULL_REQUEST
+}
+
+/// Branches, commits and pull requests from GitHub that mention an issue key.
+model DevActivity {
+  id         String   @id @default(cuid())
+  issueId    String
+  issue      Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  kind       DevKind
+  externalId String
+  title      String
+  url        String
+  state      String   @default("open")
+  author     String   @default("")
+  repo       String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([issueId, kind, externalId])
+}

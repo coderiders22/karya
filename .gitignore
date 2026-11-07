@@ -1,0 +1,58 @@
+# ---- Dependencies ----
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+
+# ---- Next.js build output ----
+.next/
+out/
+build/
+dist/
+next-env.d.ts
+*.tsbuildinfo
+
+# ---- Secrets: never commit ----
+.env
+.env.*
+!.env.example
+*.pem
+.dev-credentials
+
+# ---- Local data ----
+.pgdata/
+uploads/
+# database dumps in the project root (migrations in prisma/migrations stay tracked)
+/*.sql
+/*.dump
+/backup*.json
+karya-backup-*.json
+trackr-backup-*.json
+
+# ---- Hosting tools ----
+.vercel/
+
+# ---- Logs and test output ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+coverage/
+
+# ---- Editors ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*~
+
+# ---- Claude Code (personal settings) ----
+.claude/settings.local.json
+
+# ---- OS files ----
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+Desktop.ini

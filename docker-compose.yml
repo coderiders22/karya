@@ -1,0 +1,38 @@
+# Self-hosting: copy .env.example to .env, set AUTH_SECRET and APP_URL, then run:
+#   docker compose up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trackr
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trackr}
+      POSTGRES_DB: trackr
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trackr"]
+      interval: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://trackr:${POSTGRES_PASSWORD:-trackr}@db:5432/trackr
+      DATABASE_URL_UNPOOLED: postgresql://trackr:${POSTGRES_PASSWORD:-trackr}@db:5432/trackr
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      UPLOAD_DIR: /app/uploads
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "3000:3000"
+
+volumes:
+  db-data:
+  uploads:
