@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { completeSprint, deleteSprint, startSprint, updateSprint } from "@/app/actions/sprints";
 import { Modal } from "./CreateIssueDialog";
+import { confirmDialog } from "./Dialog";
 
 export function CompleteSprintButton({
   sprintId, name, openCount, futureSprints,
@@ -66,7 +67,7 @@ export function SprintHeaderActions({
       )}
       <button className="btn-ghost text-xs" onClick={() => setEditing(true)}>Edit</button>
       {sprint.state === "FUTURE" && (
-        <button className="btn-danger text-xs" onClick={() => confirm(`Delete ${sprint.name}? Its issues move to the backlog.`) && run(() => deleteSprint(sprint.id))}>
+        <button className="btn-danger text-xs" onClick={async () => (await confirmDialog({ title: `Delete ${sprint.name}?`, message: "Its issues move back to the backlog. Nothing else is lost.", danger: true, confirmLabel: "Delete sprint" })) && run(() => deleteSprint(sprint.id))}>
           Delete
         </button>
       )}

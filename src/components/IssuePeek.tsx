@@ -4,15 +4,16 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Ban, ChevronDown, ChevronUp, GitPullRequest, Hourglass, Link2, Maximize2, MessageSquare, Paperclip, X } from "lucide-react";
+import { Ban, ChevronDown, ChevronUp, GitPullRequest, Hourglass, Link2, Maximize2, MessageSquare, Paperclip, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { getIssuePeek, type IssuePeekData } from "@/app/actions/peek";
-import { addComment, updateIssueField } from "@/app/actions/issues";
+import { addComment, deleteIssue, updateIssueField } from "@/app/actions/issues";
 import { PRIORITIES } from "@/lib/constants";
 import { Avatar, IssueKey, TypeIcon } from "./IssueBits";
 import { Markdown } from "./Markdown";
 import { timeAgo } from "./NotificationBell";
 import { LoaderBlock } from "./LogoLoader";
+import { confirmDialog, isDialogOpen } from "./Dialog";
 
 const ISSUE_HREF = /^\/issues\/([A-Za-z][A-Za-z0-9]*-\d+)$/;
 
@@ -72,6 +73,7 @@ export function IssuePeek({ meId }: { meId: string }) {
   useEffect(() => {
     if (!key) return;
     const onKey = (e: KeyboardEvent) => {
+      if (isDialogOpen()) return; // the dialog on top handles its own keys (Esc closes it, not the panel)
       const typing = (e.target as HTMLElement).closest("input,textarea,select");
       if (e.key === "Escape") { e.stopPropagation(); setKey(null); return; }
       if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -116,6 +118,20 @@ export function IssuePeek({ meId }: { meId: string }) {
           <button className="btn-icon" data-tip="Copy link" aria-label="Copy link"
             onClick={() => { navigator.clipboard.writeText(`${location.origin}/issues/${key}`); toast.success(`Link to ${key} copied`); }}>
             <Link2 size={15} />
+          </button>
+          <button className="btn-icon hover:!text-red-600" data-tip="Delete issue" aria-label="Delete issue" disabled={!data}
+            onClick={async () => {
+              if (!data || !(await confirmDialog({ title: `Delete ${data.key}?`, message: "Its comments, attachments and history are deleted too. This can't be undone.", danger: true, confirmLabel: "Delete issue" }))) return;
+              const { id, key: deleted } = data;
+              start(async () => {
+                await deleteIssue(id);
+                order.current = order.current.filter((k) => k !== deleted);
+                setKey(null);
+                toast.success(`${deleted} deleted`);
+                router.refresh();
+              });
+            }}>
+            <Trash2 size={15} />
           </button>
           <Link href={`/issues/${key}`} onClick={() => setKey(null)} className="btn-icon" data-tip="Open full page  O" aria-label="Open full page"><Maximize2 size={15} /></Link>
           <button className="btn-icon" onClick={() => setKey(null)} data-tip="Close  Esc" aria-label="Close"><X size={16} /></button>

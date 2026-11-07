@@ -139,7 +139,7 @@ export function Board({ issues, statuses, users, meId, projectId, sprintId, stal
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3" data-tour="board-filters">
         <label className="relative">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter cards" className="input !w-52 pl-8" />
@@ -175,7 +175,7 @@ export function Board({ issues, statuses, users, meId, projectId, sprintId, stal
       </div>
       <div data-peek-scope>
       <DndContext id={`board-${projectId}`} sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}>
-        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:snap-none sm:px-0">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:snap-none sm:px-0" data-tour="board-columns">
           {statuses.map((s, i) => (
             <Column key={s.id} status={s} issues={cols[s.id] ?? []} visible={visible} staleDays={staleDays}
               onMenu={(issue, x, y) => setMenu({ issue, x, y })}
@@ -213,7 +213,7 @@ function Column({ status, issues, visible, staleDays, footer, onMenu }: { status
           {shown.map((i) => <SortableCard key={i.id} issue={i} staleDays={staleDays} onMenu={onMenu} />)}
         </div>
       </SortableContext>
-      {footer && <div className="mt-1">{footer}</div>}
+      {footer && <div className="mt-1" data-tour="quick-add">{footer}</div>}
     </div>
   );
 }
@@ -224,6 +224,7 @@ function SortableCard({ issue, staleDays, onMenu }: { issue: CardIssue; staleDay
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
+      data-tour="card"
       className={clsx("cursor-grab active:cursor-grabbing", isDragging && "opacity-30")}
       {...attributes}
       {...listeners}

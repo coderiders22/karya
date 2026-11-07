@@ -9,6 +9,7 @@ import { ISSUE_TYPES, PRIORITIES } from "@/lib/constants";
 import { Bookmark, Inbox } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, EmptyState, IssueKey, PriorityIcon, StatusPill, TypeIcon } from "./IssueBits";
+import { confirmDialog, promptDialog } from "./Dialog";
 
 export type NavRow = {
   id: string; key: string; title: string; type: IssueType; priority: Priority; storyPoints: number | null;
@@ -85,10 +86,10 @@ export function IssueNavigator({
           <Bulk label="Priority…" field="priority" options={PRIORITIES.map((p) => ({ value: p.value, label: p.label }))} />
           <Bulk label="Type…" field="type" options={ISSUE_TYPES.map((t) => ({ value: t.value, label: t.label }))} />
           {sprints.length > 0 && <Bulk label="Move to sprint…" field="sprintId" options={[{ value: "", label: "Backlog" }, ...sprints]} />}
-          <button className="btn !py-1 text-xs" disabled={pending} onClick={() => { const l = prompt("Label to add"); if (l?.trim()) apply("addLabel", l.trim().replace(/\s+/g, "-")); }}>+ Label</button>
+          <button className="btn !py-1 text-xs" disabled={pending} onClick={async () => { const l = await promptDialog({ title: `Add a label to ${sel.size} issue${sel.size === 1 ? "" : "s"}`, label: "Label", placeholder: "e.g. frontend", confirmLabel: "Add label" }); if (l) apply("addLabel", l.replace(/\s+/g, "-")); }}>+ Label</button>
           {isAdmin && (
             <button className="btn-danger text-xs" disabled={pending}
-              onClick={() => confirm(`Delete ${sel.size} issues permanently?`) && start(async () => { const n = await bulkDelete(ids); toast.success(`Deleted ${n} issues`); setSel(new Set()); router.refresh(); })}>
+              onClick={async () => (await confirmDialog({ title: `Delete ${sel.size} issue${sel.size === 1 ? "" : "s"}?`, message: "Their comments, attachments and history are deleted too. This can't be undone.", danger: true })) && start(async () => { const n = await bulkDelete(ids); toast.success(`Deleted ${n} issues`); setSel(new Set()); router.refresh(); })}>
               Delete
             </button>
           )}

@@ -56,3 +56,6 @@ coverage/
 ._*
 Thumbs.db
 Desktop.ini
+
+# Guide video recording scratch
+.video-tmp/

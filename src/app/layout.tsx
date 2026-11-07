@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { DialogHost } from "@/components/Dialog";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <NextTopLoader color="#17a383" height={2} showSpinner={false} shadow="0 0 8px #17a383" />
         {children}
+        <DialogHost />
         <Toaster position="bottom-right" toastOptions={{ className: "!rounded-lg !text-[13px] !font-sans !shadow-lg" }} />
       </body>
     </html>

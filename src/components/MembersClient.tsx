@@ -6,6 +6,7 @@ import type { Role } from "@prisma/client";
 import { createInvite, createResetLink, removeUser, revokeInvite, setRole } from "@/app/actions/members";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDialog } from "./Dialog";
 
 export function InviteForm() {
   const router = useRouter();
@@ -65,7 +66,7 @@ export function MemberActions({ userId, role, isSelf }: { userId: string; role: 
         })}>
         <KeyRound size={14} />Reset password
       </button>
-      <button className="btn-danger" disabled={pending} onClick={() => confirm("Remove this person?") && run(() => removeUser(userId))}>Remove</button>
+      <button className="btn-danger" disabled={pending} onClick={async () => (await confirmDialog({ title: "Remove this person?", message: "They lose access to Karya straight away. Their issues and comments stay.", danger: true, confirmLabel: "Remove" })) && run(() => removeUser(userId))}>Remove</button>
     </div>
   );
 }

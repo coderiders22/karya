@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteProject, updateProject } from "@/app/actions/projects";
 import { PROJECT_COLORS } from "@/lib/constants";
+import { promptDialog } from "./Dialog";
 
 export function ProjectDetailsForm({
   project, users, isAdmin,
@@ -49,7 +50,7 @@ export function ProjectDetailsForm({
         <div className="flex-1" />
         {isAdmin && (
           <button type="button" className="btn-danger"
-            onClick={() => prompt(`This permanently deletes the project and all its issues. Type ${project.name} to confirm.`) === project.name && start(() => deleteProject(project.id))}>
+            onClick={async () => (await promptDialog({ title: `Delete ${project.name}?`, message: <>This permanently deletes the project and <b>all its issues, sprints and comments</b>. Type <b>{project.name}</b> to confirm.</>, mustMatch: project.name, placeholder: project.name, danger: true, confirmLabel: "Delete project" })) !== null && start(() => deleteProject(project.id))}>
             Delete project
           </button>
         )}

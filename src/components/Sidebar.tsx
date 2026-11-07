@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import {
   Home, FolderKanban, Search, Users, KanbanSquare, ListTodo, GanttChartSquare, Rows3, BarChart3, Settings2,
-  Bookmark, Menu, Plus, Coffee,
+  Bookmark, Menu, Plus, Coffee, BookOpen,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { NotificationBell } from "./NotificationBell";
@@ -16,12 +16,13 @@ type P = { id: string; key: string; name: string; color: string };
 type F = { id: string; name: string; href: string };
 type Icon = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
 
-function NavLink({ href, icon: I, children, exact, badge }: { href: string; icon?: Icon; children: React.ReactNode; exact?: boolean; badge?: string }) {
+function NavLink({ href, icon: I, children, exact, badge, tour }: { href: string; icon?: Icon; children: React.ReactNode; exact?: boolean; badge?: string; tour?: string }) {
   const path = usePathname();
   const active = exact ? path === href : path === href || path.startsWith(href + "/");
   return (
     <Link
       href={href}
+      data-tour={tour}
       className={clsx(
         "group relative flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors duration-150",
         active ? "bg-white/[0.08] font-medium text-white" : "text-slate-400 hover:bg-white/[0.05] hover:text-slate-100",
@@ -44,9 +45,9 @@ export function ProjectBadge({ p, size = 20 }: { p: { key: string; color: string
   );
 }
 
-function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
+function Section({ title, children, action, tour }: { title: string; children: React.ReactNode; action?: React.ReactNode; tour?: string }) {
   return (
-    <div className="mt-5">
+    <div className="mt-5" data-tour={tour}>
       <div className="mb-1 flex items-center justify-between px-2 text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500">
         {title}
         {action}
@@ -61,6 +62,19 @@ export function Sidebar({ projects, filters, user }: { projects: P[]; filters: F
   const current = projects.find((p) => path.startsWith(`/projects/${p.key}/`) || path === `/projects/${p.key}`);
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [path]);
+  // "Open inbox" from a notification toast, and the guided tour: on phones these live in this drawer.
+  useEffect(() => {
+    const show = () => { if (!window.matchMedia("(min-width: 64rem)").matches) setOpen(true); };
+    const hide = () => setOpen(false);
+    window.addEventListener("karya:open-inbox", show);
+    window.addEventListener("karya:sidebar-open", show);
+    window.addEventListener("karya:sidebar-close", hide);
+    return () => {
+      window.removeEventListener("karya:open-inbox", show);
+      window.removeEventListener("karya:sidebar-open", show);
+      window.removeEventListener("karya:sidebar-close", hide);
+    };
+  }, []);
 
   return (
     <>
@@ -82,11 +96,12 @@ export function Sidebar({ projects, filters, user }: { projects: P[]; filters: F
       >
         <div className="flex h-12 items-center justify-between px-3">
           <Link href="/your-work"><Logo /></Link>
-          <NotificationBell />
+          <div data-tour="inbox"><NotificationBell /></div>
         </div>
 
         <div className="flex gap-1.5 px-3 pb-2">
           <button
+            data-tour="search"
             onClick={() => window.dispatchEvent(new Event("trackr:palette"))}
             className="flex h-8 flex-1 items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-2 text-[13px] text-slate-400 transition-colors hover:border-white/15 hover:bg-white/[0.07] hover:text-slate-200"
           >
@@ -94,7 +109,7 @@ export function Sidebar({ projects, filters, user }: { projects: P[]; filters: F
             <span className="flex-1 text-left">Search</span>
             <span className="kbd !border-white/10 !bg-white/5">⌘K</span>
           </button>
-          <button onClick={() => openCreateIssue()} data-tip="New issue  C" aria-label="New issue"
+          <button onClick={() => openCreateIssue()} data-tour="create" data-tip="New issue  C" aria-label="New issue"
             className="grid size-8 place-items-center rounded-md bg-brand text-brand-fg shadow-[0_0_0_1px_rgb(255_255_255/0.08),0_4px_14px_-4px_var(--color-brand-500)] transition-[background-color,transform] hover:bg-brand-hover active:scale-95">
             <Plus size={16} strokeWidth={2.25} />
           </button>
@@ -102,14 +117,15 @@ export function Sidebar({ projects, filters, user }: { projects: P[]; filters: F
 
         <div className="flex-1 overflow-y-auto px-3 pb-4">
           <nav className="space-y-px">
-            <NavLink href="/your-work" icon={Home}>Your work</NavLink>
-            <NavLink href="/projects" icon={FolderKanban} exact>Projects</NavLink>
-            <NavLink href="/filters" icon={Rows3} exact>All issues</NavLink>
-            <NavLink href="/settings/members" icon={Users}>Team</NavLink>
+            <NavLink href="/your-work" icon={Home} tour="your-work">Your work</NavLink>
+            <NavLink href="/projects" icon={FolderKanban} exact tour="projects">Projects</NavLink>
+            <NavLink href="/filters" icon={Rows3} exact tour="all-issues">All issues</NavLink>
+            <NavLink href="/settings/members" icon={Users} tour="team">Team</NavLink>
+            <NavLink href="/guide" icon={BookOpen} tour="guide">Guide</NavLink>
           </nav>
 
           {current && (
-            <Section title={current.name}>
+            <Section title={current.name} tour="project-nav">
               <NavLink href={`/projects/${current.key}/board`} icon={KanbanSquare}>Board</NavLink>
               <NavLink href={`/projects/${current.key}/backlog`} icon={ListTodo}>Backlog</NavLink>
               <NavLink href={`/projects/${current.key}/standup`} icon={Coffee}>Standup</NavLink>
@@ -144,7 +160,7 @@ export function Sidebar({ projects, filters, user }: { projects: P[]; filters: F
           )}
         </div>
 
-        <div className="border-t border-white/[0.06] p-2">{user}</div>
+        <div className="border-t border-white/[0.06] p-2" data-tour="user-menu">{user}</div>
       </aside>
     </>
   );

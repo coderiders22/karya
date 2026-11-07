@@ -22,6 +22,7 @@
 - Reports: sprint burndown, velocity, created vs resolved, workload
 - "Your work" dashboard and in-app notifications (assigned, mentioned, commented, status changes)
 - ⌘K command palette, `C` to create, dark mode
+- **Built-in guide:** a guided tour on first login, and a Guide page that explains every feature step by step, with short videos recorded from the real app (`scripts/record-guide-videos.mjs` re-records them)
 
 **Team & data**
 - Invite links, Admin/Member roles, profile and password settings

@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/UserMenu";
 import { Shortcuts } from "@/components/Shortcuts";
 import { IssuePeek } from "@/components/IssuePeek";
 import { SplashScreen } from "@/components/SplashScreen";
+import { TourHost } from "@/components/Tour";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -36,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <CommandPalette projects={projects} />
       <Shortcuts projects={projects} />
       <IssuePeek meId={user.id} />
+      <TourHost userName={user.name} />
     </div>
   );
 }

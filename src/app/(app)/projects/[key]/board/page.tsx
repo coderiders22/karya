@@ -36,7 +36,7 @@ export default async function BoardPage({ params }: { params: Promise<{ key: str
               <div className="text-sm font-semibold">{active.name}</div>
               {active.goal && <div className="truncate text-xs text-muted">{active.goal}</div>}
             </div>
-            {forecast && <div className="order-last basis-full sm:order-none sm:ml-4 sm:basis-auto sm:min-w-0 sm:flex-1"><SprintForecast f={forecast} /></div>}
+            {forecast && <div data-tour="forecast" className="order-last basis-full sm:order-none sm:ml-4 sm:basis-auto sm:min-w-0 sm:flex-1"><SprintForecast f={forecast} /></div>}
             <CompleteSprintButton sprintId={active.id} name={active.name} openCount={openCount} futureSprints={futureSprints} />
           </>
         ) : (

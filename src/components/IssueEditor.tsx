@@ -6,6 +6,7 @@ import { addComment, deleteComment, deleteIssue, updateIssueField } from "@/app/
 import { MentionTextarea } from "./IssueExtras";
 import { Link2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDialog } from "./Dialog";
 
 type Field = Parameters<typeof updateIssueField>[1];
 
@@ -137,7 +138,7 @@ export function DeleteCommentButton({ commentId }: { commentId: string }) {
   const router = useRouter();
   const [, start] = useTransition();
   return (
-    <button className="text-xs text-muted hover:text-red-600" onClick={() => confirm("Delete this comment?") && start(async () => { await deleteComment(commentId); router.refresh(); })}>
+    <button className="text-xs text-muted hover:text-red-600" onClick={async () => (await confirmDialog({ title: "Delete this comment?", message: "This can't be undone.", danger: true })) && start(async () => { await deleteComment(commentId); router.refresh(); })}>
       Delete
     </button>
   );
@@ -150,7 +151,7 @@ export function DeleteIssueButton({ issueId, issueKey, projectKey }: { issueId: 
     <button
       className="btn-danger"
       disabled={pending}
-      onClick={() => confirm(`Delete ${issueKey}? This can't be undone.`) && start(async () => { await deleteIssue(issueId); router.push(`/projects/${projectKey}/board`); })}
+      onClick={async () => (await confirmDialog({ title: `Delete ${issueKey}?`, message: "Its comments, attachments and history are deleted too. This can't be undone.", danger: true, confirmLabel: "Delete issue" })) && start(async () => { await deleteIssue(issueId); router.push(`/projects/${projectKey}/board`); })}
     >
       <Trash2 size={14} />Delete issue
     </button>

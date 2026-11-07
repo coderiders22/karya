@@ -12,6 +12,7 @@ import { LINK_RELATIONS } from "@/lib/links";
 import { Eye, EyeOff, Link2, Paperclip, Plus, X, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { IssueKey, StatusPill, TypeIcon } from "./IssueBits";
+import { confirmDialog } from "./Dialog";
 
 function fmtSize(n: number) {
   if (n < 1024) return `${n} B`;
@@ -107,7 +108,7 @@ export function Attachments({ issueId, items, direct = false }: { issueId: strin
                 </div>
                 {a.canDelete && (
                   <button className="text-xs text-muted opacity-0 hover:text-red-600 group-hover:opacity-100 touch:opacity-100"
-                    onClick={() => confirm(`Delete ${a.filename}?`) && start(async () => { await deleteAttachment(a.id); router.refresh(); })}>
+                    onClick={async () => (await confirmDialog({ title: `Delete ${a.filename}?`, message: "The file is removed for everyone. This can't be undone.", danger: true })) && start(async () => { await deleteAttachment(a.id); router.refresh(); })}>
                     <X size={14} />
                   </button>
                 )}

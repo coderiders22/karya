@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { StatusCategory } from "@prisma/client";
 import { addStatus, deleteStatus, moveStatus, updateStatus } from "@/app/actions/projects";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { confirmDialog } from "./Dialog";
 
 const CATS: { value: StatusCategory; label: string }[] = [
   { value: "TODO", label: "To do" },
@@ -35,7 +36,7 @@ export function StatusEditor({ projectId, statuses }: { projectId: string; statu
             type="button"
             className="btn-danger"
             disabled={statuses.length <= 1 || pending}
-            onClick={() => confirm(`Delete "${s.name}"? Its ${s.count} issues move to "${statuses.find((x) => x.id !== s.id)?.name}".`) && run(() => deleteStatus(s.id))}
+            onClick={async () => (await confirmDialog({ title: `Delete the "${s.name}" column?`, message: `Its ${s.count} issue${s.count === 1 ? "" : "s"} move to "${statuses.find((x) => x.id !== s.id)?.name}".`, danger: true, confirmLabel: "Delete column" })) && run(() => deleteStatus(s.id))}
           >
             <Trash2 size={14} />
           </button>
