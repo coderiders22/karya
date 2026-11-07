@@ -10,10 +10,8 @@ import { toast } from "sonner";
 import { createIssue } from "@/app/actions/issues";
 import { getCreateContext } from "@/app/actions/labels";
 import { smartParse } from "@/lib/smartParse";
-import {
-  AssigneePicker, LabelPicker, MenuList, PriorityPicker, TypePicker, labelItems, navKey, personItems, priorityItems, typeItems,
-  type MenuItem,
-} from "./Pickers";
+import { AssigneePicker, LabelPicker, PriorityPicker, TypePicker } from "./Pickers";
+import { forgetProjectLabels, useTitleSuggest } from "./TitleSuggest";
 
 export type ShellProject = { id: string; key: string; name: string };
 export type ShellUser = { id: string; name: string };
@@ -26,11 +24,6 @@ export function openCreateIssue(detail: CreateDetail = {}) {
 
 type Fields = { type: IssueType; priority: Priority; assigneeId: string; storyPoints: string; parentKey: string; dueDate: string };
 const EMPTY: Fields = { type: "TASK", priority: "MEDIUM", assigneeId: "", storyPoints: "", parentKey: "", dueDate: "" };
-
-/** What the title suggestions are for, keyed by the character that opens them. */
-const TRIGGERS = { "@": "Assign to", "#": "Add label", "!": "Priority", "/": "Type" } as const;
-type Trigger = keyof typeof TRIGGERS;
-type Suggest = { sym: Trigger; q: string; start: number; end: number };
 
 export function CreateIssueDialog({ projects, users, meId }: { projects: ShellProject[]; users: ShellUser[]; meId: string }) {
   const router = useRouter();
@@ -47,16 +40,12 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
   const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
   const [another, setAnother] = useState(false);
-  const [sug, setSug] = useState<Suggest | null>(null);
-  const [sugActive, setSugActive] = useState(0);
   const titleRef = useRef<HTMLInputElement>(null);
   const fromBoard = useRef(false);
+  const ts = useTitleSuggest({ input: titleRef, value: title, setValue: setTitle });
 
   // While a suggestion menu is open, the half-typed "#fro" is ignored, so it can't show up as a label of its own.
-  const parsed = useMemo(
-    () => smartParse(sug ? title.slice(0, sug.start) + title.slice(sug.end) : title, users, meId),
-    [title, sug, users, meId],
-  );
+  const parsed = useMemo(() => smartParse(ts.textForParse, users, meId), [ts.textForParse, users, meId]);
   const project = ctx[projectId];
 
   // Load the project's labels and running sprint (once per project).
@@ -102,7 +91,7 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
       setLabels([]);
       setInSprint(false);
       setCtx((m) => { const { [pid]: _, ...rest } = m; return rest; }); // fresh labels each time
-      setSug(null);
+      ts.close();
       setError(undefined);
       setOpen(true);
     };
@@ -132,47 +121,16 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
   }
 
   // ---- Title suggestions: @ people, # labels, ! priority, / type ----
-  const detect = (text: string, caret: number) => {
-    const m = text.slice(0, caret).match(/(?:^|\s)([@#!/])([\w.-]{0,30})$/);
-    if (!m) return setSug(null);
-    setSug({ sym: m[1] as Trigger, q: m[2], start: caret - m[2].length - 1, end: caret });
-    setSugActive(0);
-  };
-  const sugItems: MenuItem[] = !sug ? [] : (() => {
-    const q = sug.q.toLowerCase();
-    if (sug.sym === "@") return personItems(users, meId, effective.assigneeId, q).slice(0, 6);
-    if (sug.sym === "#") return labelItems([...new Set([...allLabels, ...(project?.labels ?? [])])], allLabels, q).slice(0, 7);
-    // Closest match first: "!hi" means High, not Highest.
-    const byFit = (items: MenuItem[]) => !q ? items
-      : items.filter((x) => x.label.toLowerCase().startsWith(q)).sort((x, y) => x.label.length - y.label.length);
-    if (sug.sym === "!") return byFit(priorityItems(effective.priority));
-    return byFit(typeItems(effective.type));
-  })();
-  const choose = (it: MenuItem) => {
-    if (!sug) return;
-    // Take the "@sa" the person typed out of the title, and set the field instead.
-    const before = title.slice(0, sug.start).replace(/\s+$/, "");
-    const after = title.slice(sug.end).replace(/^\s+/, "");
-    const next = before ? `${before} ${after}` : after;
-    const caret = before ? before.length + 1 : 0;
-    setTitle(next);
-    if (sug.sym === "@") set("assigneeId", it.value);
-    else if (sug.sym === "#") setLabels((l) => (l.includes(it.value) ? l : [...l, it.value]));
-    else if (sug.sym === "!") set("priority", it.value as Priority);
-    else set("type", it.value as IssueType);
-    setSug(null);
-    requestAnimationFrame(() => { titleRef.current?.focus(); titleRef.current?.setSelectionRange(caret, caret); });
-  };
-  // Put the menu under the character that opened it.
-  const menuLeft = (() => {
-    const el = titleRef.current;
-    if (!sug || !el) return 0;
-    const c = document.createElement("canvas").getContext("2d");
-    if (!c) return 0;
-    c.font = getComputedStyle(el).font;
-    const x = c.measureText(title.slice(0, sug.start)).width - el.scrollLeft;
-    return Math.max(0, Math.min(x, el.clientWidth - 260));
-  })();
+  const sg = ts.bind({
+    users, meId, labels: project?.labels ?? [],
+    current: { assigneeId: effective.assigneeId, priority: effective.priority, type: effective.type, labels: allLabels },
+    onPick: (p) => {
+      if (p.sym === "@") set("assigneeId", p.value);
+      else if (p.sym === "#") setLabels((l) => (l.includes(p.value) ? l : [...l, p.value]));
+      else if (p.sym === "!") set("priority", p.value);
+      else set("type", p.value);
+    },
+  });
 
   // A # label typed in the title is removed by taking its text out of the title.
   const removeTypedLabel = (l: string) => {
@@ -181,7 +139,7 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
   };
 
   function submit() {
-    const finalTitle = sug ? smartParse(title, users, meId).title : parsed.title;
+    const finalTitle = ts.open ? smartParse(title, users, meId).title : parsed.title;
     if (!finalTitle.trim()) return setError("Give the issue a title");
     const form = new FormData();
     form.set("projectId", projectId);
@@ -196,6 +154,7 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
     start(async () => {
       const res = await createIssue(form);
       if (res.error) return setError(res.error);
+      if (allLabels.length) forgetProjectLabels(projectId);
       toast.success(`Created ${res.key}`, { action: { label: "Open", onClick: () => router.push(`/issues/${res.key}`) } });
       router.refresh();
       if (another) {
@@ -223,31 +182,20 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
           <input
             ref={titleRef}
             value={title}
-            onChange={(e) => { setTitle(e.target.value); detect(e.target.value, e.target.selectionStart ?? e.target.value.length); }}
-            onKeyDown={(e) => {
-              if (sug && sugItems.length && navKey(e, sugItems.length, sugActive, setSugActive, () => choose(sugItems[sugActive]))) return;
-              if (e.key === "Escape" && sug) { e.preventDefault(); e.stopPropagation(); setSug(null); }
-            }}
-            onKeyUp={(e) => { if (e.key === "ArrowLeft" || e.key === "ArrowRight") detect(title, e.currentTarget.selectionStart ?? 0); }}
-            onBlur={() => setTimeout(() => setSug(null), 120)}
+            onChange={ts.onChange}
+            onKeyDown={(e) => { sg.handleKey(e); }}
+            onKeyUp={ts.onKeyUp}
+            onBlur={() => setTimeout(ts.close, 120)}
             autoFocus
             maxLength={300}
             className="w-full bg-transparent text-lg font-medium outline-none placeholder:text-slate-400"
             placeholder="Issue title"
             aria-label="Title"
             aria-autocomplete="list"
-            aria-expanded={!!sug && sugItems.length > 0}
+            aria-expanded={sg.expanded}
             autoComplete="off"
           />
-          {sug && (sugItems.length > 0 || sug.sym === "#") && (
-            <div className="card absolute top-full z-30 mt-1 w-[260px] animate-pop overflow-hidden !shadow-xl" style={{ left: menuLeft }}>
-              <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-muted dark:border-slate-800">
-                {TRIGGERS[sug.sym]}
-                <span className="normal-case tracking-normal">↑↓ · Enter</span>
-              </div>
-              <MenuList items={sugItems} active={sugActive} onPick={choose} onHover={setSugActive} empty={sug.sym === "#" ? "Type a name to create a label" : undefined} />
-            </div>
-          )}
+          {sg.menu}
         </div>
         <p className="mt-1 min-h-5 text-xs text-muted">
           Type {sym("@")} to assign, {sym("#")} to label, {sym("!")} for priority, {sym("/")} for type. <span className="hidden sm:inline">Also works: {sym("3pts")} {sym("due:fri")}</span>

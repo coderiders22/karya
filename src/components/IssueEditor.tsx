@@ -3,7 +3,10 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addComment, deleteComment, deleteIssue, updateIssueField } from "@/app/actions/issues";
-import { MentionTextarea } from "./IssueExtras";
+import type { IssueType, Priority, StatusCategory } from "@prisma/client";
+import { CommentComposer, MentionTextarea } from "./IssueExtras";
+import { AssigneePicker, LabelPicker, PriorityPicker, StatusPicker, TypePicker } from "./Pickers";
+import { forgetProjectLabels, useProjectLabels } from "./TitleSuggest";
 import { Link2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { confirmDialog } from "./Dialog";
@@ -109,28 +112,54 @@ export function FieldInput({
 
 export function CommentBox({ issueId, users }: { issueId: string; users: { id: string; name: string }[] }) {
   const router = useRouter();
-  const [body, setBody] = useState("");
-  const [pending, start] = useTransition();
-  const submit = () =>
-    body.trim() &&
-    start(async () => {
-      await addComment(issueId, body);
-      setBody("");
-      router.refresh();
-    });
   return (
-    <div className="space-y-2">
-      <MentionTextarea
-        users={users}
-        value={body}
-        onChange={setBody}
-        onKeyDown={(e) => e.key === "Enter" && (e.metaKey || e.ctrlKey) && submit()}
-        rows={3}
-        className="input"
-        placeholder="Add a comment… Type @ to mention someone. Markdown supported, ⌘↵ to send."
-      />
-      {body.trim() && <button className="btn-primary" disabled={pending} onClick={submit}>Comment</button>}
-    </div>
+    <CommentComposer
+      users={users}
+      placeholder="Add a comment… Type @ to mention someone."
+      onSubmit={async (body) => { await addComment(issueId, body); router.refresh(); }}
+    />
+  );
+}
+
+/* ---- Property fields on the issue page: colored pickers that show the change at once ---- */
+
+function useOptimistic<T>(value: T) {
+  const [v, setV] = useState(value);
+  useEffect(() => setV(value), [value]);
+  return [v, setV] as const;
+}
+
+export function StatusField({ issueId, value, statuses }: { issueId: string; value: string; statuses: { id: string; name: string; category: StatusCategory }[] }) {
+  const { save } = useSave(issueId);
+  const [v, setV] = useOptimistic(value);
+  return <StatusPicker variant="field" value={v} statuses={statuses} onChange={(x) => { setV(x); save("statusId", x); }} />;
+}
+
+export function AssigneeField({ issueId, value, users, meId }: { issueId: string; value: string; users: { id: string; name: string }[]; meId: string }) {
+  const { save } = useSave(issueId);
+  const [v, setV] = useOptimistic(value);
+  return <AssigneePicker variant="field" value={v} users={users} meId={meId} onChange={(x) => { setV(x); save("assigneeId", x); }} />;
+}
+
+export function PriorityField({ issueId, value }: { issueId: string; value: Priority }) {
+  const { save } = useSave(issueId);
+  const [v, setV] = useOptimistic(value);
+  return <PriorityPicker variant="field" value={v} onChange={(x) => { setV(x); save("priority", x); }} />;
+}
+
+export function TypeField({ issueId, value }: { issueId: string; value: IssueType }) {
+  const { save } = useSave(issueId);
+  const [v, setV] = useOptimistic(value);
+  return <TypePicker variant="field" value={v} onChange={(x) => { setV(x); save("type", x); }} />;
+}
+
+export function LabelsField({ issueId, value, projectId }: { issueId: string; value: string[]; projectId: string }) {
+  const { save } = useSave(issueId);
+  const [v, setV] = useOptimistic(value);
+  const all = useProjectLabels(projectId);
+  return (
+    <LabelPicker variant="field" value={v} all={all}
+      onChange={(x) => { setV(x); if (x.some((l) => !all.includes(l))) forgetProjectLabels(projectId); save("labels", x.join(",")); }} />
   );
 }
 

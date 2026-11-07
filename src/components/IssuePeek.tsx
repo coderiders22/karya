@@ -8,8 +8,10 @@ import { Ban, ChevronDown, ChevronUp, GitPullRequest, Hourglass, Link2, Maximize
 import { toast } from "sonner";
 import { getIssuePeek, type IssuePeekData } from "@/app/actions/peek";
 import { addComment, deleteIssue, updateIssueField } from "@/app/actions/issues";
-import { PRIORITIES } from "@/lib/constants";
-import { Avatar, IssueKey, TypeIcon, LabelChip } from "./IssueBits";
+import { Avatar, IssueKey, TypeIcon } from "./IssueBits";
+import { CommentComposer } from "./IssueExtras";
+import { AssigneePicker, LabelPicker, PriorityPicker, StatusPicker } from "./Pickers";
+import { forgetProjectLabels, useProjectLabels } from "./TitleSuggest";
 import { Markdown } from "./Markdown";
 import { timeAgo } from "./NotificationBell";
 import { LoaderBlock } from "./LogoLoader";
@@ -28,7 +30,6 @@ export function IssuePeek({ meId }: { meId: string }) {
   const [key, setKey] = useState<string | null>(null);
   const [data, setData] = useState<IssuePeekData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [comment, setComment] = useState("");
   const [, start] = useTransition();
   const order = useRef<string[]>([]);
   const panel = useRef<HTMLDivElement>(null);
@@ -61,7 +62,7 @@ export function IssuePeek({ meId }: { meId: string }) {
     return () => document.removeEventListener("click", onClick, true);
   }, []);
 
-  useEffect(() => { if (key) { setComment(""); load(key); } else setData(null); }, [key, load]);
+  useEffect(() => { if (key) load(key); else setData(null); }, [key, load]);
 
   const step = useCallback((d: 1 | -1) => {
     if (!key) return;
@@ -74,6 +75,8 @@ export function IssuePeek({ meId }: { meId: string }) {
     if (!key) return;
     const onKey = (e: KeyboardEvent) => {
       if (isDialogOpen()) return; // the dialog on top handles its own keys (Esc closes it, not the panel)
+      // An open picker or @ list owns the keys too: arrows, Enter and Esc are for it, not for the panel.
+      if (document.querySelector('[aria-haspopup="listbox"][aria-expanded="true"], [aria-autocomplete="list"][aria-expanded="true"]')) return;
       const typing = (e.target as HTMLElement).closest("input,textarea,select");
       if (e.key === "Escape") { e.stopPropagation(); setKey(null); return; }
       if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -88,6 +91,16 @@ export function IssuePeek({ meId }: { meId: string }) {
 
   const save = (field: Parameters<typeof updateIssueField>[1], value: string) => {
     if (!data) return;
+    // Show the change straight away; the reload below confirms it.
+    setData((d) => {
+      if (!d) return d;
+      if (field === "statusId") return { ...d, status: d.statuses.find((x) => x.id === value) ?? d.status };
+      if (field === "assigneeId") return { ...d, assigneeId: value === "__me__" ? meId : value || null };
+      if (field === "priority") return { ...d, priority: value as typeof d.priority };
+      if (field === "dueDate") return { ...d, dueDate: value };
+      if (field === "labels") return { ...d, labels: value ? value.split(",") : [] };
+      return d;
+    });
     start(async () => {
       await updateIssueField(data.id, field, value === "__me__" ? meId : value);
       if (value === "__me__") toast.success(`${data.key} assigned to you`);
@@ -166,26 +179,24 @@ export function IssuePeek({ meId }: { meId: string }) {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1 border-y border-slate-100 bg-slate-50/60 px-5 py-3 dark:border-slate-800 dark:bg-slate-900/60">
+            <div className="grid gap-x-3 gap-y-1 border-y border-slate-100 bg-slate-50/60 px-5 py-3 sm:grid-cols-2 dark:border-slate-800 dark:bg-slate-900/60">
               <Field label="Status">
-                <select value={data.status.id} onChange={(e) => save("statusId", e.target.value)} className="prop-field">
-                  {data.statuses.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+                <StatusPicker variant="field" value={data.status.id} statuses={data.statuses} onChange={(v) => save("statusId", v)} />
               </Field>
               <Field label="Assignee" hint="M">
-                <select value={data.assigneeId ?? ""} onChange={(e) => save("assigneeId", e.target.value)} className="prop-field">
-                  <option value="">Unassigned</option>
-                  {data.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
+                <AssigneePicker variant="field" value={data.assigneeId ?? ""} users={data.users} meId={meId} onChange={(v) => save("assigneeId", v)} />
               </Field>
               <Field label="Priority">
-                <select value={data.priority} onChange={(e) => save("priority", e.target.value)} className="prop-field">
-                  {PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
+                <PriorityPicker variant="field" value={data.priority} onChange={(v) => save("priority", v)} />
               </Field>
               <Field label="Due">
-                <input type="date" value={data.dueDate} onChange={(e) => save("dueDate", e.target.value)} className="prop-field cursor-text" />
+                <input type="date" value={data.dueDate} onChange={(e) => save("dueDate", e.target.value)} className="prop-field cursor-text" aria-label="Due date" />
               </Field>
+              <div className="sm:col-span-2">
+                <Field label="Labels">
+                  <PeekLabels projectId={data.project.id} value={data.labels} onChange={(v) => save("labels", v.join(","))} />
+                </Field>
+              </div>
             </div>
 
             <div className="px-6 py-5">
@@ -195,7 +206,6 @@ export function IssuePeek({ meId }: { meId: string }) {
                 {data.subtasks.total > 0 && <span>{data.subtasks.done}/{data.subtasks.total} sub-issues done</span>}
                 {data.attachmentCount > 0 && <span className="inline-flex items-center gap-1"><Paperclip size={12} />{data.attachmentCount}</span>}
                 {data.storyPoints != null && <span>{data.storyPoints} pts</span>}
-                {data.labels.map((l) => <LabelChip key={l} name={l} />)}
                 <span>Reported by {data.reporter}</span>
               </div>
 
@@ -226,17 +236,12 @@ export function IssuePeek({ meId }: { meId: string }) {
                     </li>
                   ))}
                 </ul>
-                <form className="mt-3" onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!comment.trim()) return;
-                  const body = comment;
-                  setComment("");
-                  start(async () => { await addComment(data.id, body); await load(data.key); toast.success("Comment added"); });
-                }}>
-                  <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} placeholder="Reply…  ⌘↵ to send"
-                    onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) (e.currentTarget.form as HTMLFormElement).requestSubmit(); }}
-                    className="input resize-none" />
-                </form>
+                <div className="mt-3">
+                  <CommentComposer
+                    key={data.id} users={data.users} rows={2} placeholder="Reply… Type @ to mention someone."
+                    onSubmit={async (body) => { await addComment(data.id, body); await load(data.key); toast.success("Comment added"); }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -252,11 +257,20 @@ export function IssuePeek({ meId }: { meId: string }) {
   );
 }
 
+// A div, not a <label>: a label would re-click the picker's button when an option inside it is chosen.
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
-    <label className="grid grid-cols-[72px_1fr] items-center gap-1">
+    <div className="grid min-w-0 grid-cols-[72px_minmax(0,1fr)] items-center gap-1">
       <span className="flex items-center gap-1 pl-1 text-xs text-muted">{label}{hint && <span className="kbd !h-4 !min-w-4 !text-[10px]">{hint}</span>}</span>
       {children}
-    </label>
+    </div>
+  );
+}
+
+function PeekLabels({ projectId, value, onChange }: { projectId: string; value: string[]; onChange: (v: string[]) => void }) {
+  const all = useProjectLabels(projectId);
+  return (
+    <LabelPicker variant="field" value={value} all={all}
+      onChange={(v) => { if (v.some((l) => !all.includes(l))) forgetProjectLabels(projectId); onChange(v); }} />
   );
 }

@@ -87,7 +87,7 @@ function steps(id: TourId, name: string): Step[] {
     },
     {
       target: "quick-add", title: "Add without leaving the board",
-      body: <>Type a title and press <K>Enter</K>. The one-line shortcuts work here too: <Code>@name</Code>, <Code>!high</Code>, <Code>#label</Code>, <Code>due:fri</Code>, <Code>3pts</Code>.</>,
+      body: <>Type a title and press <K>Enter</K>. While typing, <K>@</K> suggests teammates, <K>#</K> labels, <K>!</K> priority and <K>/</K> the type; your picks show as colored chips under the box.</>,
     },
     {
       target: "board-filters", title: "Narrow the board",
@@ -102,8 +102,8 @@ function steps(id: TourId, name: string): Step[] {
       body: <><b>Backlog</b>: plan the next sprint; it warns when you've planned more than your usual pace. <b>Standup</b>: everyone's done, doing and blocked work, with a timed presenter mode. <b>Insights</b>: burndown, velocity and where work waits.</>,
     },
     {
-      title: "Side panel shortcuts",
-      body: <>With a card open in the side panel: <K>J</K> / <K>K</K> next and previous, <K>M</K> assign to me, <K>O</K> open full page, <K>Esc</K> close. Press <K>?</K> any time for every shortcut.</>,
+      title: "The side panel",
+      body: <>Click a card to open it on the right: change status, priority, assignee and labels with colored pickers, and reply with <K>@</K> mentions. <K>J</K> / <K>K</K> next and previous, <K>M</K> assign to me, <K>Esc</K> close. Press <K>?</K> for every shortcut.</>,
     },
   ];
 }

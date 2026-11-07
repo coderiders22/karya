@@ -42,6 +42,7 @@ const overlay = () => {
         font:500 16px/1.4 Inter,system-ui,sans-serif;letter-spacing:-.005em;box-shadow:0 10px 30px -8px rgba(0,0,0,.45);
         transition:opacity .25s,transform .25s}
       #rec-cap.on{opacity:1;transform:translate(-50%,0)}
+      #rec-cap.top{top:72px;bottom:auto}
       #rec-cap b{color:#5fd4b6;font-weight:600}
       #rec-cap kbd{display:inline-block;min-width:22px;padding:0 6px;margin:0 1px;border:1px solid rgba(255,255,255,.25);border-bottom-width:2px;
         border-radius:5px;font:600 13px/20px Inter,system-ui,sans-serif;text-align:center;background:rgba(255,255,255,.08)}`;
@@ -62,7 +63,7 @@ const overlay = () => {
       document.body.appendChild(r); setTimeout(() => r.remove(), 500);
     }, true);
     addEventListener("mouseup", () => c.classList.remove("down"), true);
-    window.__cap = (html) => { cap.innerHTML = html || ""; cap.classList.toggle("on", !!html); };
+    window.__cap = (html, top) => { cap.innerHTML = html || ""; cap.classList.toggle("on", !!html); cap.classList.toggle("top", !!top); };
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
 };
@@ -79,7 +80,8 @@ function helpers(page) {
   return {
     wait,
     moveTo,
-    caption: async (html, hold = 0) => { await page.evaluate((h) => window.__cap?.(h), html); if (hold) await wait(hold); },
+    /** Caption bar at the bottom, or at the top when what we're showing sits at the bottom of the screen. */
+    caption: async (html, hold = 0, top = false) => { await page.evaluate(([h, t]) => window.__cap?.(h, t), [html, top]); if (hold) await wait(hold); },
     click: async (loc, opts) => { await loc.scrollIntoViewIfNeeded(); await moveTo(loc, opts); await wait(220); await page.mouse.down(); await wait(70); await page.mouse.up(); },
     type: async (text, delay = 55) => page.keyboard.type(text, { delay }),
     drag: async (from, to) => {
@@ -150,6 +152,73 @@ const VIDEOS = {
     await h.wait(1800);
     await h.moveTo(page.getByRole("link", { name: "Checkout button hidden on Safari" }));
     await h.wait(1800);
+    await h.caption("", 600);
+  },
+
+  async "quick-add"(page, h) {
+    await page.goto(`${BASE}/projects/WR/board`);
+    await page.getByText("Newsletter API endpoint").waitFor();
+    await h.wait(700);
+    await h.caption("<b>Add an issue…</b> at the bottom of a column adds one in a single line.", 600, true);
+    await h.click(page.getByRole("button", { name: "Add an issue…" }).first());
+    await h.wait(500);
+    await h.type("Hero image blurry on retina screens @", 60);
+    await h.caption("<b>@</b> suggests teammates…", 300, true);
+    await h.wait(900);
+    await h.type("ro", 120); await h.wait(500); await page.keyboard.press("Enter"); await h.wait(400);
+    await h.caption("…<b>#</b> labels, <b>!</b> priority and <b>/</b> the type.", 200, true);
+    await h.type("#fro", 110); await h.wait(900); await page.keyboard.press("Enter"); await h.wait(300);
+    await h.type("!hi", 110); await h.wait(900); await page.keyboard.press("Enter"); await h.wait(300);
+    await h.type("/bu", 110); await h.wait(800); await page.keyboard.press("Enter");
+    await h.wait(500);
+    await h.caption("Your picks show as <b>colored chips</b>. Press <kbd>Enter</kbd> to add it.", 300, true);
+    await h.poster("quick-add");
+    await h.wait(2200);
+    await page.keyboard.press("Enter");
+    await h.wait(1800);
+    await h.moveTo(page.getByRole("link", { name: "Hero image blurry on retina screens" }));
+    await h.wait(1600);
+    await page.keyboard.press("Escape");
+    await h.caption("", 600, true);
+  },
+
+  async "side-panel"(page, h) {
+    await page.goto(`${BASE}/projects/WR/board`);
+    await page.getByText("Newsletter API endpoint").waitFor();
+    await h.wait(700);
+    await h.caption("Click a card to open it in the <b>side panel</b>.", 600);
+    await h.click(page.getByRole("link", { name: "Newsletter API endpoint" }));
+    const panel = page.locator("aside[role=dialog]");
+    await panel.getByRole("button", { name: "Status" }).waitFor();
+    await h.wait(1200);
+    await h.caption("Change status, priority, assignee and labels with <b>colored pickers</b>.");
+    await h.click(panel.getByRole("button", { name: "Status" }));
+    await h.wait(900);
+    await page.keyboard.press("ArrowDown"); await h.wait(450);
+    await page.keyboard.press("Enter");
+    await h.wait(1000);
+    await h.click(panel.getByRole("button", { name: "Priority" }));
+    await h.wait(700);
+    await h.poster("side-panel");
+    await page.keyboard.press("ArrowUp"); await h.wait(400); await page.keyboard.press("ArrowUp"); await h.wait(400);
+    await page.keyboard.press("Enter");
+    await h.wait(900);
+    await h.click(panel.getByRole("button", { name: "Labels" }));
+    await h.wait(500);
+    await h.type("api", 100); await h.wait(800);
+    await page.keyboard.press("Enter"); await h.wait(500);
+    await page.keyboard.press("Escape");
+    await h.wait(900);
+    await h.caption("Reply at the bottom. <b>@</b> brings up teammates to mention.");
+    await h.click(panel.locator("textarea"));
+    await h.type("Mail provider key has arrived. @le", 55);
+    await h.wait(1100);
+    await page.keyboard.press("Enter");
+    await h.type("can you review the endpoint?", 50);
+    await h.wait(500);
+    await h.caption("Click <b>Comment</b> to post it. They're notified straight away.");
+    await h.click(panel.getByRole("button", { name: "Comment", exact: true }));
+    await h.wait(2400);
     await h.caption("", 600);
   },
 

@@ -9,7 +9,7 @@ export async function getIssuePeek(key: string) {
   const i = await db.issue.findUnique({
     where: { key: key.toUpperCase() },
     include: {
-      project: { select: { key: true, name: true, color: true, staleDays: true, statuses: { orderBy: { position: "asc" }, select: { id: true, name: true, category: true } } } },
+      project: { select: { id: true, key: true, name: true, color: true, staleDays: true, statuses: { orderBy: { position: "asc" }, select: { id: true, name: true, category: true } } } },
       status: { select: { id: true, name: true, category: true } },
       reporter: { select: { name: true } },
       parent: { select: { key: true, title: true } },
@@ -26,7 +26,7 @@ export async function getIssuePeek(key: string) {
     id: i.id, key: i.key, title: i.title, description: i.description, type: i.type, priority: i.priority,
     status: i.status, statuses: i.project.statuses, assigneeId: i.assigneeId, users,
     storyPoints: i.storyPoints, dueDate: i.dueDate?.toISOString().slice(0, 10) ?? "", labels: i.labels,
-    project: { key: i.project.key, name: i.project.name, color: i.project.color },
+    project: { id: i.project.id, key: i.project.key, name: i.project.name, color: i.project.color },
     staleDays: i.project.staleDays, statusChangedAt: i.statusChangedAt.toISOString(),
     reporter: i.reporter.name, parent: i.parent,
     subtasks: { total: i.children.length, done: i.children.filter((c) => c.status.category === "DONE").length },

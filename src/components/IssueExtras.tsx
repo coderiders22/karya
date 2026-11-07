@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { IssueType, StatusCategory } from "@prisma/client";
@@ -9,9 +10,10 @@ import { deleteAttachment, registerAttachments, uploadAttachments } from "@/app/
 import { addLink, removeLink } from "@/app/actions/links";
 import { toggleWatch } from "@/app/actions/issues";
 import { LINK_RELATIONS } from "@/lib/links";
-import { Eye, EyeOff, Link2, Paperclip, Plus, X, FileText } from "lucide-react";
+import { Eye, EyeOff, Link2, Paperclip, Plus, SendHorizontal, X, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { IssueKey, StatusPill, TypeIcon } from "./IssueBits";
+import { Avatar, IssueKey, StatusPill, TypeIcon } from "./IssueBits";
+import { MenuList, navKey } from "./Pickers";
 import { confirmDialog } from "./Dialog";
 
 function fmtSize(n: number) {
@@ -196,12 +198,23 @@ export function MentionTextarea({
   const ref = useRef<HTMLTextAreaElement>(null);
   const [query, setQuery] = useState<string | null>(null);
   const [active, setActive] = useState(0);
-  const matches = query === null ? [] : users.filter((u) => u.name.toLowerCase().startsWith(query.toLowerCase()) || u.name.toLowerCase().includes(` ${query.toLowerCase()}`)).slice(0, 6);
+  const [pos, setPos] = useState<{ left: number; top?: number; bottom?: number }>({ left: 0 });
+  const q = (query ?? "").toLowerCase();
+  const matches = query === null ? [] : users
+    .filter((u) => !q || u.name.toLowerCase().split(/\s+/).some((part) => part.startsWith(q)) || u.name.toLowerCase().startsWith(q))
+    .slice(0, 6);
 
   const detect = (text: string, caret: number) => {
     const m = text.slice(0, caret).match(/(?:^|\s)@([\w.-]{0,20})$/);
     setQuery(m ? m[1] : null);
     setActive(0);
+    const el = ref.current;
+    if (m && el) {
+      // Float above everything (side panels scroll and would clip it); flip up near the bottom.
+      const r = el.getBoundingClientRect();
+      const left = Math.min(r.left + 8, window.innerWidth - 248);
+      setPos(window.innerHeight - r.bottom < 260 ? { left, bottom: window.innerHeight - r.top + 4 } : { left, top: r.bottom + 4 });
+    }
   };
   const pick = (name: string) => {
     const el = ref.current!;
@@ -214,34 +227,76 @@ export function MentionTextarea({
   };
 
   return (
-    <div className="relative">
+    <>
       <textarea
         ref={ref}
         {...props}
         value={value}
         onChange={(e) => { onChange(e.target.value); detect(e.target.value, e.target.selectionStart); }}
+        onBlur={(e) => { setTimeout(() => setQuery(null), 120); props.onBlur?.(e); }}
         onKeyDown={(e) => {
-          if (matches.length) {
-            if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % matches.length); return; }
-            if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + matches.length) % matches.length); return; }
-            if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pick(matches[active].name); return; }
-            if (e.key === "Escape") { setQuery(null); return; }
-          }
+          if (matches.length && navKey(e, matches.length, active, setActive, () => pick(matches[active].name))) return;
+          if (query !== null && e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setQuery(null); return; }
           props.onKeyDown?.(e);
         }}
+        aria-autocomplete="list"
+        aria-expanded={matches.length > 0}
       />
-      {matches.length > 0 && (
-        <ul className="card absolute left-2 top-full z-20 mt-1 w-56 overflow-hidden py-1">
-          {matches.map((u, i) => (
-            <li key={u.id}>
-              <button type="button" onMouseDown={(e) => { e.preventDefault(); pick(u.name); }}
-                className={`w-full px-3 py-1.5 text-left text-sm ${i === active ? "bg-brand/10" : ""}`}>
-                {u.name}
-              </button>
-            </li>
-          ))}
-        </ul>
+      {matches.length > 0 && typeof document !== "undefined" && createPortal(
+        <div className="card fixed z-[70] w-60 animate-pop overflow-hidden !shadow-xl" style={pos} onMouseDown={(e) => e.preventDefault()}>
+          <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-muted dark:border-slate-800">
+            Mention<span className="normal-case tracking-normal">↑↓ · Enter</span>
+          </div>
+          <MenuList
+            items={matches.map((u) => ({ value: u.id, label: u.name, icon: <Avatar name={u.name} size={5} /> }))}
+            active={active} onHover={setActive} onPick={(it) => pick(it.label)}
+          />
+        </div>,
+        document.body,
       )}
+    </>
+  );
+}
+
+/**
+ * The comment box used on the issue page and in the side panel: @ mentions with avatars,
+ * Markdown, and a visible Comment button (⌘/Ctrl + Enter also sends).
+ */
+export function CommentComposer({ users, onSubmit, placeholder = "Add a comment…", rows = 3 }: {
+  users: { id: string; name: string }[]; onSubmit: (body: string) => Promise<void>; placeholder?: string; rows?: number;
+}) {
+  const [body, setBody] = useState("");
+  const [pending, start] = useTransition();
+  const [mod, setMod] = useState("Ctrl");
+  useEffect(() => { if (/Mac|iPhone|iPad/.test(navigator.platform)) setMod("⌘"); }, []);
+  const submit = () => {
+    const text = body.trim();
+    if (!text || pending) return;
+    start(async () => {
+      try {
+        await onSubmit(text);
+        setBody("");
+      } catch {
+        toast.error("Couldn't post the comment. Try again.");
+      }
+    });
+  };
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15 dark:border-slate-700 dark:bg-slate-900">
+      <MentionTextarea
+        users={users} value={body} onChange={setBody} rows={rows} placeholder={placeholder} disabled={pending}
+        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }}
+        className="block w-full resize-y rounded-t-lg bg-transparent px-3 py-2.5 text-[13.5px] leading-relaxed outline-none placeholder:text-slate-400"
+      />
+      <div className="flex items-center gap-2 border-t border-slate-100 px-2.5 py-1.5 dark:border-slate-800">
+        <span className="min-w-0 flex-1 truncate text-[11.5px] text-muted">
+          <span className="kbd !h-4 !min-w-4 !text-[10px]">@</span> to mention · Markdown
+        </span>
+        <span className="hidden text-[11px] text-muted sm:inline"><span className="kbd !h-4 !text-[10px]">{mod}</span> <span className="kbd !h-4 !text-[10px]">↵</span></span>
+        <button type="button" onClick={submit} disabled={!body.trim() || pending} className="btn-primary !h-7 !px-2.5 text-xs">
+          <SendHorizontal size={13} />{pending ? "Posting…" : "Comment"}
+        </button>
+      </div>
     </div>
   );
 }

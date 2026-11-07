@@ -4,12 +4,12 @@ import { ChevronRight, Hourglass } from "lucide-react";
 import { db } from "@/lib/db";
 import { usesBlob } from "@/lib/storage";
 import { requireUser } from "@/lib/auth";
-import { ISSUE_TYPES, PRIORITIES } from "@/lib/constants";
 import { describeLink } from "@/lib/links";
 import { Avatar, IssueKey, PriorityIcon, StatusPill, TypeIcon } from "@/components/IssueBits";
 import { Markdown } from "@/components/Markdown";
 import {
-  CommentBox, CopyLink, DeleteCommentButton, DeleteIssueButton, DescriptionEditor, EditableTitle, FieldInput, FieldSelect, IssueHotkeys,
+  AssigneeField, CommentBox, CopyLink, DeleteCommentButton, DeleteIssueButton, DescriptionEditor, EditableTitle, FieldInput, FieldSelect, IssueHotkeys,
+  LabelsField, PriorityField, StatusField, TypeField,
 } from "@/components/IssueEditor";
 import { CreateChildButton } from "@/components/CreateChildButton";
 import { Attachments, LinkedIssues, WatchButton } from "@/components/IssueExtras";
@@ -207,17 +207,16 @@ export default async function IssuePage({ params }: { params: Promise<{ key: str
           )}
           <div className="card divide-y divide-slate-100 px-2 py-1 dark:divide-slate-800">
             <Prop label="Status">
-              <FieldSelect issueId={issue.id} field="statusId" value={issue.statusId} options={issue.project.statuses.map((s) => ({ value: s.id, label: s.name }))} />
+              <StatusField issueId={issue.id} value={issue.statusId} statuses={issue.project.statuses.map((s) => ({ id: s.id, name: s.name, category: s.category }))} />
             </Prop>
             <Prop label="Assignee" hint="M">
-              <FieldSelect issueId={issue.id} field="assigneeId" value={issue.assigneeId ?? ""}
-                options={[{ value: "", label: "Unassigned" }, ...users.map((u) => ({ value: u.id, label: u.id === me.id ? `${u.name} (me)` : u.name }))]} />
+              <AssigneeField issueId={issue.id} value={issue.assigneeId ?? ""} users={users} meId={me.id} />
             </Prop>
             <Prop label="Priority">
-              <FieldSelect issueId={issue.id} field="priority" value={issue.priority} options={PRIORITIES.map((p) => ({ value: p.value, label: p.label }))} />
+              <PriorityField issueId={issue.id} value={issue.priority} />
             </Prop>
             <Prop label="Type">
-              <FieldSelect issueId={issue.id} field="type" value={issue.type} options={ISSUE_TYPES.map((t) => ({ value: t.value, label: t.label }))} />
+              <TypeField issueId={issue.id} value={issue.type} />
             </Prop>
             <Prop label="Estimate">
               <FieldInput issueId={issue.id} field="storyPoints" type="number" value={issue.storyPoints?.toString() ?? ""} placeholder="No estimate" />
@@ -232,7 +231,7 @@ export default async function IssuePage({ params }: { params: Promise<{ key: str
               </Prop>
             )}
             <Prop label="Labels">
-              <FieldInput issueId={issue.id} field="labels" value={issue.labels.join(", ")} placeholder="Add labels" />
+              <LabelsField issueId={issue.id} value={issue.labels} projectId={issue.projectId} />
             </Prop>
             <Prop label="Start">
               <FieldInput issueId={issue.id} field="startDate" type="date" value={issue.startDate?.toISOString().slice(0, 10) ?? ""} />

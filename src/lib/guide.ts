@@ -56,8 +56,8 @@ export const GUIDE: GuideSection[] = [
     id: "issues", title: "Issues",
     topics: [
       {
-        id: "create", title: "Create an issue in one line",
-        summary: "Type the whole issue as one sentence and Karya fills in the fields for you.",
+        id: "create", title: "Create an issue",
+        summary: "The full form, for when you also want a description, estimate or due date. Type the title and pick people, labels and priority without leaving the keyboard.",
         steps: [
           "Press `C` anywhere, or click the **+** next to Search.",
           "Write the title. Type `@` and a menu of teammates appears; `#` shows your project's labels (or creates a new one); `!` picks the priority; `/` picks the type. Use `↑` `↓` and `Enter` to choose.",
@@ -70,27 +70,54 @@ export const GUIDE: GuideSection[] = [
         keywords: "new issue add task bug story smart parse syntax shortcut quick mention label priority assign colour color",
       },
       {
+        id: "quick-add", title: "Quick add on the board and backlog",
+        summary: "Add an issue straight into a column or sprint in one line, without opening a form.",
+        steps: [
+          "Click **Add an issue…** at the bottom of the board's first column, or under any sprint in the **Backlog**.",
+          "Type the title. The same suggestions work: `@` teammates, `#` labels, `!` priority, `/` type.",
+          "What you pick shows as colored chips under the box. Click × on a chip to undo it.",
+          "Press `Enter` to add it. The box stays open for the next one; `Esc` closes it.",
+        ],
+        result: "On the board the issue lands in the first column, inside the running sprint; in the backlog it goes into the section (sprint or backlog) you added it under.",
+        video: "quick-add",
+        keywords: "quick add inline add an issue board backlog fast chips mention label priority",
+      },
+      {
+        id: "colors", title: "Labels, priorities and their colors",
+        summary: "Colors carry meaning in Karya, so you can scan a board without reading every word.",
+        steps: [
+          "**Priority**: red Highest (drop everything), orange High (do next), amber Medium (normal), blue Low (when there's time), grey Lowest (someday).",
+          "**Status**: grey for to do, blue for in progress, green for done.",
+          "**Labels**: every label keeps the same color everywhere (board, lists, side panel). Add them with `#` while typing a title, or with the **+** next to existing labels. Typing a new name creates the label.",
+          "**Violet** tags on a card name its epic. **Red Blocked** means another issue is holding it up; an **amber** timer means it has waited too long.",
+        ],
+        keywords: "label labels tag color colour priority status meaning legend epic blocked",
+      },
+      {
         id: "issue-page", title: "Work on an issue",
         summary: "Everything about one piece of work: description, comments, subtasks, links, files and history.",
         steps: [
-          "Click any issue key or title to open it. Click a field on the right to change it; changes save straight away.",
-          "Write the description and comments in Markdown. Type `@` and a name to mention a teammate, which notifies them.",
+          "Click any issue key or title to open it.",
+          "On the right, **Status**, **Assignee**, **Priority**, **Type** and **Labels** are colored pickers: click one, type to search, or use `↑` `↓` and `Enter`. Changes show at once and save by themselves.",
+          "Write the description in Markdown. In **comments**, type `@` and pick a teammate from the list (they get notified), then click **Comment** or press `⌘ Enter` (`Ctrl Enter` on Windows).",
           "Add **subtasks**, **link** issues (blocks / is blocked by / relates to / duplicates), and drop files into **Attachments** (up to 25 MB each).",
           "Click **Watch** to get notified about every change. **History** at the bottom shows who changed what.",
         ],
         result: "A blocked issue shows a red **Blocked** tag on the board until the issue blocking it is done.",
-        keywords: "edit description comment mention subtask link blocks attachment file watch history markdown",
+        keywords: "edit description comment mention reply subtask link blocks attachment file watch history markdown picker status assignee",
       },
       {
         id: "peek", title: "Side panel",
         summary: "Look at and update an issue without leaving the board or list you're on.",
         steps: [
           "Click a card on the board or a row in a list: the issue opens in a panel on the right.",
-          "Change status, assignee or priority, or add a comment right there.",
+          "Change **status**, **assignee**, **priority**, **due date** and **labels** with the colored pickers at the top.",
+          "Reply at the bottom: `@` brings up teammates to mention, and the **Comment** button posts it.",
           "Press `J` / `K` for the next or previous issue, `M` to assign it to yourself, `O` to open the full page, `Esc` to close.",
         ],
         result: "Triage a whole column in a minute, keyboard only.",
-        keywords: "peek panel preview quick view triage",
+        video: "side-panel",
+        keywords: "peek panel preview quick view triage sidebar comment mention picker labels",
       },
       {
         id: "delete", title: "Delete an issue",
@@ -114,7 +141,7 @@ export const GUIDE: GuideSection[] = [
           "Open a project and choose **Board**.",
           "Drag a card to another column to change its status. On a phone, press and hold the card, then drag.",
           "Right-click a card for quick actions: assign to me, change status or priority, copy link, copy a git branch command.",
-          "Add a card to the first column with **Add an issue…** at the bottom; the one-line shortcuts work there too.",
+          "Add a card with **Add an issue…** at the bottom of the first column (see **Quick add** above).",
         ],
         video: "board",
         action: { label: "Replay board tour", tour: "board" },
@@ -252,7 +279,7 @@ export const GUIDE: GuideSection[] = [
         id: "inbox", title: "Inbox and alerts",
         summary: "Know straight away when work is assigned to you or someone needs you.",
         steps: [
-          "You're notified when you're **assigned** an issue, **@mentioned**, someone **comments** on an issue you watch, or its **status changes**.",
+          "You're notified when you're **assigned** an issue, **@mentioned** in a comment or description, someone **comments** on an issue you watch, or its **status changes**.",
           "While Karya is open, a pop-up appears with an **Open** button, and a soft chime plays. The tab title shows the unread count.",
           "When you come back after being away, a summary shows what arrived.",
           "Open the bell at the top of the sidebar to see everything. Use the speaker button there to turn the sound off or on.",
