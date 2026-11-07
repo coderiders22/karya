@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { getIssuePeek, type IssuePeekData } from "@/app/actions/peek";
 import { addComment, deleteIssue, updateIssueField } from "@/app/actions/issues";
 import { PRIORITIES } from "@/lib/constants";
-import { Avatar, IssueKey, TypeIcon } from "./IssueBits";
+import { Avatar, IssueKey, TypeIcon, LabelChip } from "./IssueBits";
 import { Markdown } from "./Markdown";
 import { timeAgo } from "./NotificationBell";
 import { LoaderBlock } from "./LogoLoader";
@@ -195,7 +195,7 @@ export function IssuePeek({ meId }: { meId: string }) {
                 {data.subtasks.total > 0 && <span>{data.subtasks.done}/{data.subtasks.total} sub-issues done</span>}
                 {data.attachmentCount > 0 && <span className="inline-flex items-center gap-1"><Paperclip size={12} />{data.attachmentCount}</span>}
                 {data.storyPoints != null && <span>{data.storyPoints} pts</span>}
-                {data.labels.map((l) => <span key={l} className="tag">{l}</span>)}
+                {data.labels.map((l) => <LabelChip key={l} name={l} />)}
                 <span>Reported by {data.reporter}</span>
               </div>
 

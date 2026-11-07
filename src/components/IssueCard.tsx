@@ -2,7 +2,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { Ban, CalendarClock, Hourglass } from "lucide-react";
 import type { CardIssue } from "@/lib/types";
-import { Avatar, IssueKey, PriorityIcon, TypeIcon } from "./IssueBits";
+import { Avatar, IssueKey, PriorityIcon, TypeIcon, LabelChip } from "./IssueBits";
 
 const DAY = 86400000;
 
@@ -39,7 +39,7 @@ export function IssueCard({ issue, dragging, staleDays = 3 }: { issue: CardIssue
       {(issue.parent || issue.labels.length > 0) && (
         <div className="mt-2 flex flex-wrap gap-1">
           {issue.parent && <span className="tag max-w-full truncate !border-violet-200 !text-violet-700 dark:!border-violet-900 dark:!text-violet-300">{issue.parent.title}</span>}
-          {issue.labels.map((l) => <span key={l} className="tag">{l}</span>)}
+          {issue.labels.map((l) => <LabelChip key={l} name={l} />)}
         </div>
       )}
       <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-slate-500 dark:text-slate-400">

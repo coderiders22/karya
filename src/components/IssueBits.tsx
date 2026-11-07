@@ -79,3 +79,50 @@ export function EmptyState({ icon: Icon, title, children }: { icon: React.Compon
     </div>
   );
 }
+
+/**
+ * Each label always gets the same color, everywhere (board, lists, issue page, pickers), picked from
+ * its name. Violet is left out on purpose: it marks epics.
+ */
+const LABEL_TINTS = [
+  "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300",
+  "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300",
+  "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300",
+  "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300",
+  "border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-300",
+  "border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-300",
+  "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900 dark:bg-orange-950/50 dark:text-orange-300",
+  "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800 dark:border-fuchsia-900 dark:bg-fuchsia-950/50 dark:text-fuchsia-300",
+  "border-lime-200 bg-lime-50 text-lime-800 dark:border-lime-900 dark:bg-lime-950/50 dark:text-lime-300",
+  "border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950/50 dark:text-cyan-300",
+] as const;
+const LABEL_DOTS = ["bg-sky-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-indigo-500", "bg-teal-500", "bg-orange-500", "bg-fuchsia-500", "bg-lime-500", "bg-cyan-500"] as const;
+
+function labelIndex(name: string) {
+  let h = 0;
+  for (const c of name.toLowerCase()) h = (h * 33 + c.charCodeAt(0)) >>> 0;
+  return h % LABEL_TINTS.length;
+}
+export const labelDot = (name: string) => LABEL_DOTS[labelIndex(name)];
+
+export function LabelChip({ name, onRemove, className }: { name: string; onRemove?: () => void; className?: string }) {
+  return (
+    <span className={clsx("inline-flex max-w-full items-center gap-1 rounded border px-1.5 text-[11.5px] font-medium leading-5", LABEL_TINTS[labelIndex(name)], className)}>
+      <span className="truncate">{name}</span>
+      {onRemove && (
+        <button type="button" onClick={onRemove} aria-label={`Remove label ${name}`} className="-mr-0.5 grid size-3.5 place-items-center rounded opacity-60 hover:opacity-100">
+          <svg viewBox="0 0 12 12" width="9" height="9" aria-hidden><path d="M3 3l6 6M9 3L3 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+        </button>
+      )}
+    </span>
+  );
+}
+
+/** Tinted pill colors for a priority, so it reads at a glance. */
+export const PRIORITY_TINT = {
+  HIGHEST: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300",
+  HIGH: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900 dark:bg-orange-950/50 dark:text-orange-300",
+  MEDIUM: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300",
+  LOW: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300",
+  LOWEST: "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300",
+} as const;

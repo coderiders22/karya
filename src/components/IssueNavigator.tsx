@@ -8,7 +8,7 @@ import { bulkDelete, bulkUpdate, saveFilter } from "@/app/actions/bulk";
 import { ISSUE_TYPES, PRIORITIES } from "@/lib/constants";
 import { Bookmark, Inbox } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, EmptyState, IssueKey, PriorityIcon, StatusPill, TypeIcon } from "./IssueBits";
+import { Avatar, EmptyState, IssueKey, PriorityIcon, StatusPill, TypeIcon, LabelChip } from "./IssueBits";
 import { confirmDialog, promptDialog } from "./Dialog";
 
 export type NavRow = {
@@ -119,7 +119,7 @@ export function IssueNavigator({
                   <td className="whitespace-nowrap"><Link href={`/issues/${i.key}`} className="hover:underline"><IssueKey k={i.key} /></Link></td>
                   <td className="max-w-md">
                     <Link href={`/issues/${i.key}`} className="block truncate hover:underline">{i.title}</Link>
-                    {i.labels.length > 0 && <div className="mt-0.5 flex gap-1">{i.labels.map((l) => <span key={l} className="tag">{l}</span>)}</div>}
+                    {i.labels.length > 0 && <div className="mt-0.5 flex gap-1">{i.labels.map((l) => <LabelChip key={l} name={l} />)}</div>}
                   </td>
                   {showProject && <td className="whitespace-nowrap text-muted">{i.project.name}</td>}
                   <td><StatusPill name={i.status.name} category={i.status.category} /></td>

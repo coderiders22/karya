@@ -33,7 +33,7 @@ function steps(id: TourId, name: string): Step[] {
     },
     {
       target: "create", title: "Create an issue",
-      body: <>Click <b>+</b> or press <K>C</K> anywhere. Write it in one line and Karya fills the fields: <Code>Login fails on Safari bug @sam !high due:fri 3pts</Code> sets type, assignee, priority, due date and points.</>,
+      body: <>Click <b>+</b> or press <K>C</K> anywhere. While typing the title, <K>@</K> suggests teammates, <K>#</K> labels, <K>!</K> priority and <K>/</K> the type, so you rarely touch the mouse.</>,
     },
     {
       target: "search", title: "Find anything",

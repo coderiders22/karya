@@ -60,12 +60,14 @@ export const GUIDE: GuideSection[] = [
         summary: "Type the whole issue as one sentence and Karya fills in the fields for you.",
         steps: [
           "Press `C` anywhere, or click the **+** next to Search.",
-          "Write the title, and add any of these: `@sam` assignee, `!high` or `p1` priority, `#payments` label, `due:fri` (or `due:tomorrow`, `due:+3d`, `due:25/12`) due date, `3pts` story points, `bug` / `story` / `task` / `epic` as the last word for the type, `^WR-4` parent, `+sprint` to put it in the current sprint.",
-          "Check the preview under the box, then press `Enter`.",
+          "Write the title. Type `@` and a menu of teammates appears; `#` shows your project's labels (or creates a new one); `!` picks the priority; `/` picks the type. Use `↑` `↓` and `Enter` to choose.",
+          "Or set the same things with the colored buttons under the description: type, priority, assignee, estimate, due date, labels.",
+          "Also understood in the title: `3pts` points, `due:fri` (or `due:tomorrow`, `due:+3d`, `due:25/12`), `^WR-4` parent. Created from a board, the issue goes into that board's running sprint; untick the sprint button to send it to the backlog.",
+          "Press `Enter` to create it.",
         ],
-        result: "Example: `Checkout fails on Safari bug @sam !high #payments due:fri 3pts` creates a high-priority bug for Sam, labelled payments, due Friday, worth 3 points.",
+        result: "Fast typists can skip the menus: `Checkout fails on Safari bug @sam !high #payments due:fri 3pts` creates a high-priority bug for Sam, labelled payments, due Friday, worth 3 points.",
         video: "create-issue",
-        keywords: "new issue add task bug story smart parse syntax shortcut quick",
+        keywords: "new issue add task bug story smart parse syntax shortcut quick mention label priority assign colour color",
       },
       {
         id: "issue-page", title: "Work on an issue",
