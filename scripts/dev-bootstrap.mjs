@@ -1,7 +1,7 @@
 // Local development only: fills an EMPTY database with a realistic team and project so every
 // screen has something to show (also used to record the Guide videos).
 // Writes the generated logins to .dev-credentials (gitignored).
-// Usage: node --env-file=.env scripts/dev-bootstrap.mjs
+// Usage: node --env-file=.env scripts/dev-bootstrap.mjs [--team-only]
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
@@ -25,6 +25,14 @@ for (const p of people) {
   u[p.name.split(" ")[0].toLowerCase()] = await db.user.create({
     data: { name: p.name, email: p.email, role: p.role, passwordHash: await bcrypt.hash(p.password, 10), createdAt: ago(40) },
   });
+}
+
+// --team-only: just the people, no projects (used to record the walkthrough from a clean start).
+if (process.argv.includes("--team-only")) {
+  writeFileSync(".dev-credentials", people.map((p) => `${p.role.padEnd(6)} ${p.email}  ${p.password}`).join("\n") + "\n");
+  console.log(`Team ready: ${people.length} people, no projects. Logins are in .dev-credentials`);
+  await db.$disconnect();
+  process.exit(0);
 }
 
 const project = await db.project.create({

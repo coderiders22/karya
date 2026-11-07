@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import type { IssueType, Priority } from "@prisma/client";
@@ -50,6 +50,8 @@ export function QuickAdd({ projectId, users, meId, sprintId, statusId, placehold
   });
 
   const reset = () => { setValue(""); setPicks(NONE); ts.close(); };
+  // Keep typing straight into the next issue after adding one.
+  useEffect(() => { if (active && !pending) input.current?.focus(); }, [active, pending]);
 
   const submit = () => {
     const p = ts.open ? smartParse(value, users, meId) : parsed;
@@ -67,14 +69,20 @@ export function QuickAdd({ projectId, users, meId, sprintId, statusId, placehold
     if (sprintId) f.set("sprintId", sprintId);
     else if (p.sprint) f.set("activeSprint", "1");
     if (statusId) f.set("statusId", statusId);
+    // Clear the box straight away so the next title can be typed while this one saves;
+    // if saving fails, the text and picks come back.
+    const before = { value, picks };
+    const newLabels = eff.labels.some((l) => !labels.includes(l));
+    reset();
     start(async () => {
       const r = await createIssue(f);
-      if (r.error) return void toast.error(r.error);
-      if (eff.labels.some((l) => !labels.includes(l))) forgetProjectLabels(projectId);
-      reset();
+      if (r.error) {
+        setValue(before.value); setPicks(before.picks);
+        return void toast.error(r.error);
+      }
+      if (newLabels) forgetProjectLabels(projectId);
       toast.success(`Created ${r.key}`);
       router.refresh();
-      requestAnimationFrame(() => input.current?.focus());
     });
   };
 
@@ -96,6 +104,8 @@ export function QuickAdd({ projectId, users, meId, sprintId, statusId, placehold
     </button>
   );
   const hasChips = !!(eff.type || eff.priority || user || eff.labels.length);
+  const canAdd = !!(ts.open ? smartParse(value, users, meId) : parsed).title && !pending;
+  const cancel = () => { reset(); setActive(false); };
 
   return (
     <div>
@@ -103,14 +113,14 @@ export function QuickAdd({ projectId, users, meId, sprintId, statusId, placehold
         ref={input}
         autoFocus
         value={value}
-        disabled={pending}
+        aria-busy={pending}
         onChange={ts.onChange}
         onKeyUp={ts.onKeyUp}
         onBlur={() => { setTimeout(ts.close, 120); if (!value && !hasChips) setActive(false); }}
         onKeyDown={(e) => {
           if (sg.handleKey(e)) return;
           if (e.key === "Enter") { e.preventDefault(); submit(); }
-          if (e.key === "Escape") { reset(); setActive(false); }
+          if (e.key === "Escape") cancel();
         }}
         aria-label="New issue title"
         aria-autocomplete="list"
@@ -142,9 +152,15 @@ export function QuickAdd({ projectId, users, meId, sprintId, statusId, placehold
               onRemove={picks.labels.includes(l) ? () => setPicks((x) => ({ ...x, labels: x.labels.filter((y) => y !== l) })) : undefined} />
           ))}
         </div>
-      ) : (
-        <p className="mt-1 px-1 text-[11px] text-muted">Enter to add · Esc to cancel</p>
-      )}
+      ) : null}
+      {/* Buttons for people who don't use Enter / Esc. mouseDown is cancelled so the box keeps focus. */}
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className="min-w-0 flex-1 truncate px-1 text-[11px] text-muted"><span className="kbd !h-4 !text-[10px]">↵</span> to add</span>
+        <button type="button" className="btn-ghost !h-7 !px-2 text-xs" onMouseDown={(e) => e.preventDefault()} onClick={cancel}>Cancel</button>
+        <button type="button" className="btn-primary !h-7 !px-2.5 text-xs" disabled={!canAdd} onMouseDown={(e) => e.preventDefault()} onClick={submit}>
+          {pending ? "Adding…" : "Add issue"}
+        </button>
+      </div>
     </div>
   );
 }

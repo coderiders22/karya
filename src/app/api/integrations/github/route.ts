@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { autoTransition, findIssues, recordDev, verifySignature } from "@/lib/github";
+import { githubWebhookSecret } from "@/lib/githubOAuth";
 
 type Commit = { id: string; message: string; url: string; author?: { name?: string; username?: string } };
 
 /**
- * GitHub webhook. Configure in the repo: Settings → Webhooks →
- *   Payload URL: <APP_URL>/api/integrations/github, Content type: application/json,
- *   Secret: same as GITHUB_WEBHOOK_SECRET, Events: Pushes, Pull requests, Branch or tag creation.
+ * GitHub webhook. Added automatically by "Connect GitHub" in project settings, or by hand in the repo:
+ *   Settings → Webhooks → Payload URL: <APP_URL>/api/integrations/github, Content type: application/json,
+ *   Secret: GITHUB_WEBHOOK_SECRET (or the derived one shown in project settings),
+ *   Events: Pushes, Pull requests, Branch or tag creation.
  */
 export async function POST(req: Request) {
-  const secret = process.env.GITHUB_WEBHOOK_SECRET;
-  if (!secret) return NextResponse.json({ error: "Set GITHUB_WEBHOOK_SECRET on the server to enable the GitHub integration" }, { status: 503 });
+  const secret = githubWebhookSecret();
+  if (!secret) return NextResponse.json({ error: "Set AUTH_SECRET (or GITHUB_WEBHOOK_SECRET) on the server to enable the GitHub integration" }, { status: 503 });
   const body = await req.text();
   if (!verifySignature(body, req.headers.get("x-hub-signature-256"), secret)) {
     return NextResponse.json({ error: "Bad signature" }, { status: 401 });

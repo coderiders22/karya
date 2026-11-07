@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { IssueType, Priority } from "@prisma/client";
 import { getProjectLabels } from "@/app/actions/labels";
@@ -57,6 +57,16 @@ export function useTitleSuggest({ input, value, setValue }: {
   const [act, setAct] = useState<Active | null>(null);
   const [idx, setIdx] = useState(0);
   const [, reflow] = useState(0);
+  // Where the caret goes after a pick. Placed in a layout effect, i.e. in the same commit as the new
+  // text, before the browser handles the next key; a later frame was too late for fast typing.
+  const caretAfterPick = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const c = caretAfterPick.current;
+    if (c == null || !input.current) return;
+    caretAfterPick.current = null;
+    input.current.focus();
+    input.current.setSelectionRange(c, c);
+  });
 
   const detect = (text: string, caret: number) => {
     const m = text.slice(0, caret).match(/(?:^|\s)([@#!/])([\w.-]{0,30})$/);
@@ -94,7 +104,7 @@ export function useTitleSuggest({ input, value, setValue }: {
       setValue(next);
       onPick({ sym: act.sym, value: it.value } as Picked);
       setAct(null);
-      requestAnimationFrame(() => { input.current?.focus(); input.current?.setSelectionRange(caret, caret); });
+      caretAfterPick.current = caret;
     };
 
     return {

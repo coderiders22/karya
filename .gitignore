@@ -58,4 +58,7 @@ Thumbs.db
 Desktop.ini
 
 # Guide video recording scratch
-.video-tmp/
+.video-tmp*/
+
+# Narration voice samples (local only)
+voice-samples/

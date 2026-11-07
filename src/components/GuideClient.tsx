@@ -69,6 +69,7 @@ export function GuideClient({ sections, shortcuts }: { sections: GuideSection[];
       </nav>
 
       <div className="min-w-0">
+        {!query && <Walkthrough />}
         <div className="relative max-w-xl">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -118,6 +119,47 @@ export function GuideClient({ sections, shortcuts }: { sections: GuideSection[];
         <div className="h-24" />
       </div>
     </div>
+  );
+}
+
+/** The full walkthrough: one project set up from scratch, every main feature, with a voice-over. */
+function Walkthrough() {
+  const [playing, setPlaying] = useState(false);
+  return (
+    <section className="mb-8 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/60" aria-labelledby="walkthrough-title">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="flex items-center bg-slate-950">
+          {playing ? (
+            <video controls autoPlay playsInline preload="auto" poster="/guide/videos/walkthrough.jpg" className="block aspect-[16/10] w-full" aria-label="Video: Karya, the full walkthrough">
+              <source src="/guide/videos/walkthrough.mp4" type="video/mp4" />
+              <track kind="captions" src="/guide/videos/walkthrough.vtt" srcLang="en" label="English" />
+            </video>
+          ) : (
+            <button className="group relative block aspect-[16/10] w-full" onClick={() => setPlaying(true)} aria-label="Play the full walkthrough">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/guide/videos/walkthrough.jpg" alt="" className="size-full object-cover object-top opacity-95 transition-opacity group-hover:opacity-100" />
+              <span className="absolute inset-0 grid place-items-center">
+                <span className="grid size-16 place-items-center rounded-full bg-brand text-white shadow-xl ring-8 ring-white/20 transition-transform group-hover:scale-105">
+                  <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>
+                </span>
+              </span>
+            </button>
+          )}
+        </div>
+        <div className="flex flex-col justify-center p-5 sm:p-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-brand">Start here · 3 min, with voice</div>
+          <h2 id="walkthrough-title" className="mt-1.5 text-lg font-semibold tracking-tight text-slate-900 dark:text-white">Karya, from first project to daily standup</h2>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-slate-600 dark:text-slate-400">
+            Watch a project set up from scratch: issues, quick add, a sprint, the board, comments with @mentions, standup, roadmap, insights, bulk edits, settings and inviting the team.
+          </p>
+          <ol className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[12.5px] text-slate-600 lg:hidden 2xl:grid dark:text-slate-400">
+            {["Create a project", "Add issues fast", "Plan a sprint", "Work the board", "Comment & mention", "Standup & insights"].map((x, i) => (
+              <li key={x} className="flex items-center gap-1.5"><span className="font-mono text-[11px] text-slate-400">{String(i + 1).padStart(2, "0")}</span>{x}</li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -1,13 +1,15 @@
-import { appUrl } from "@/lib/appUrl";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { getProjectByKey } from "@/lib/project";
 import { JIRA_DATE_FORMAT } from "@/lib/jiraCsv";
 import { StatusEditor } from "@/components/StatusEditor";
 import { ProjectDetailsForm } from "@/components/ProjectDetailsForm";
+import { GithubConnect } from "@/components/GithubConnect";
+import { githubOAuthConfigured, githubWebhookSecret, githubWebhookUrl, openToken } from "@/lib/githubOAuth";
 
-export default async function SettingsPage({ params }: { params: Promise<{ key: string }> }) {
+export default async function SettingsPage({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { key } = await params;
+  const sp = await searchParams;
   const me = await requireUser();
   const project = await getProjectByKey(key);
   const [counts, users, total] = await Promise.all([
@@ -16,6 +18,9 @@ export default async function SettingsPage({ params }: { params: Promise<{ key: 
     db.issue.count({ where: { projectId: project.id } }),
   ]);
   const countBy = Object.fromEntries(counts.map((c) => [c.statusId, c._count]));
+  // Only counts as connected if the stored token still opens (AUTH_SECRET unchanged).
+  const gh = await db.githubAccount.findUnique({ where: { userId: me.id } });
+  const ghLogin = gh && openToken(gh.token) ? gh.login : null;
 
   return (
     <main className="max-w-3xl space-y-5 p-4 sm:p-6">
@@ -45,24 +50,28 @@ export default async function SettingsPage({ params }: { params: Promise<{ key: 
         </details>
       </section>
 
-      <section className="card p-5">
-        <div className="mb-1 flex items-center gap-2">
-          <h2 className="section-title">GitHub</h2>
-          <span className={`chip ${process.env.GITHUB_WEBHOOK_SECRET ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}>
-            {process.env.GITHUB_WEBHOOK_SECRET ? "Ready" : "Not configured"}
-          </span>
-        </div>
-        <p className="mb-3 text-sm text-muted">
-          Mention an issue key (for example <code className="font-mono">{project.key}-12</code>) in a branch name, commit message or pull request title.
-          Karya links it to the issue{project.gitAutomation ? ", moves it to review when the PR opens, and to done when it merges" : ""}.
-        </p>
-        <ol className="list-decimal space-y-1 pl-5 text-[13px] text-slate-700 dark:text-slate-300">
-          {!process.env.GITHUB_WEBHOOK_SECRET && <li>On the server, set <code className="font-mono">GITHUB_WEBHOOK_SECRET</code> to a random string and restart Karya.</li>}
-          <li>In your GitHub repository, open <b>Settings → Webhooks → Add webhook</b>.</li>
-          <li>Payload URL: <code className="select-all break-all rounded bg-slate-100 px-1 font-mono text-[12px] dark:bg-slate-800">{appUrl()}/api/integrations/github</code>, content type <code className="font-mono">application/json</code>, and the same secret.</li>
-          <li>Choose <b>Pushes</b>, <b>Pull requests</b> and <b>Branch or tag creation</b>.</li>
-        </ol>
-      </section>
+      <GithubConnect
+        projectId={project.id}
+        projectKey={project.key}
+        configured={githubOAuthConfigured()}
+        repo={project.githubRepo}
+        login={ghLogin}
+        status={typeof sp.github === "string" ? sp.github : null}
+        automation={project.gitAutomation}
+        manual={
+          <ol className="list-decimal space-y-1 pl-5 text-[13px] text-slate-700 dark:text-slate-300">
+            <li>In your GitHub repository, open <b>Settings → Webhooks → Add webhook</b>.</li>
+            <li>Payload URL: <code className="select-all break-all rounded bg-slate-100 px-1 font-mono text-[12px] dark:bg-slate-800">{githubWebhookUrl()}</code>, content type <code className="font-mono">application/json</code>.</li>
+            <li>
+              Secret:{" "}
+              {me.role === "ADMIN"
+                ? <code className="select-all break-all rounded bg-slate-100 px-1 font-mono text-[12px] dark:bg-slate-800">{githubWebhookSecret()}</code>
+                : <span className="text-muted">ask an admin (it's shown to admins here)</span>}
+            </li>
+            <li>Choose <b>Pushes</b>, <b>Pull requests</b> and <b>Branch or tag creation</b>.</li>
+          </ol>
+        }
+      />
 
       <section className="card p-5">
         <h2 className="section-title mb-1">Board columns</h2>

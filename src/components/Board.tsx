@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  DndContext, DragOverlay, MouseSensor, TouchSensor, KeyboardSensor, closestCorners, useDroppable, useSensor, useSensors,
-  type DragEndEvent, type DragOverEvent, type DragStartEvent,
+  DndContext, DragOverlay, MouseSensor, TouchSensor, KeyboardSensor, closestCorners, pointerWithin, useDroppable, useSensor, useSensors,
+  type CollisionDetection, type DragEndEvent, type DragOverEvent, type DragStartEvent,
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -174,7 +174,7 @@ export function Board({ issues, statuses, users, meId, projectId, sprintId, stal
         )}
       </div>
       <div data-peek-scope>
-      <DndContext id={`board-${projectId}`} sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}>
+      <DndContext id={`board-${projectId}`} sensors={sensors} collisionDetection={dropWherePointerIs} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}>
         <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:snap-none sm:px-0" data-tour="board-columns">
           {statuses.map((s, i) => (
             <Column key={s.id} status={s} issues={cols[s.id] ?? []} visible={visible} staleDays={staleDays}
@@ -190,6 +190,16 @@ export function Board({ issues, statuses, users, meId, projectId, sprintId, stal
     </div>
   );
 }
+
+/**
+ * A card lands where the pointer is. Comparing the dragged card's outline with each column
+ * (closestCorners alone) sometimes picked the neighbouring column on boards that are wider than the
+ * screen; it's still used for the keyboard and when the pointer is between columns.
+ */
+const dropWherePointerIs: CollisionDetection = (args) => {
+  const hits = pointerWithin(args);
+  return hits.length ? hits : closestCorners(args);
+};
 
 const DOT = { TODO: "bg-slate-400", IN_PROGRESS: "bg-sky-500", DONE: "bg-emerald-500" } as const;
 

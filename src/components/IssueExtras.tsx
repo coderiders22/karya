@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -216,6 +216,15 @@ export function MentionTextarea({
       setPos(window.innerHeight - r.bottom < 260 ? { left, bottom: window.innerHeight - r.top + 4 } : { left, top: r.bottom + 4 });
     }
   };
+  // Caret position after a pick, set in the same commit as the new text (see TitleSuggest).
+  const caretAfterPick = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const c = caretAfterPick.current;
+    if (c == null || !ref.current) return;
+    caretAfterPick.current = null;
+    ref.current.focus();
+    ref.current.setSelectionRange(c, c);
+  });
   const pick = (name: string) => {
     const el = ref.current!;
     const caret = el.selectionStart;
@@ -223,7 +232,7 @@ export function MentionTextarea({
     const next = before + value.slice(caret);
     onChange(next);
     setQuery(null);
-    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(before.length, before.length); });
+    caretAfterPick.current = before.length;
   };
 
   return (

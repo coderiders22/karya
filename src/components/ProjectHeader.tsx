@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
+import { openCreateIssue } from "./CreateIssueDialog";
 import { ProjectBadge } from "./Sidebar";
 
 const SECTION: Record<string, string> = {
@@ -19,6 +20,13 @@ export function ProjectHeader({ project, actions }: { project: { key: string; na
       <span className="font-medium">{SECTION[seg] ?? seg}</span>
       <div className="flex-1" />
       {actions}
+      {seg !== "settings" && (
+        // Opens the full create form for this project. From the board, the new issue goes into the running sprint.
+        <button onClick={() => openCreateIssue()} data-tip="New issue  C" aria-label="New issue"
+          className="btn-primary !h-7 !px-2 text-xs sm:!px-2.5">
+          <Plus size={14} strokeWidth={2.25} /><span className="hidden sm:inline">New issue</span>
+        </button>
+      )}
     </header>
   );
 }

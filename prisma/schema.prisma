@@ -62,6 +62,7 @@ model User {
   savedFilters  SavedFilter[]
   attachments   Attachment[]
   resets        PasswordReset[]
+  github        GithubAccount?
 }
 
 /// Single-use link an admin creates when someone forgets their password (no email server needed).
@@ -96,6 +97,9 @@ model Project {
   color        String   @default("#0e7c66")
   /// Move issues automatically when linked pull requests open / merge.
   gitAutomation Boolean @default(true)
+  /// Connected with one click from project settings: "owner/repo", and the webhook Karya created there.
+  githubRepo    String?
+  githubHookId  String?
   /// Days an issue can sit in an in-progress column before it is flagged as stale.
   staleDays    Int      @default(3)
   createdAt    DateTime @default(now())
@@ -288,5 +292,16 @@ model DevActivity {
 model LabelColor {
   name      String   @id
   color     String
+  updatedAt DateTime @updatedAt
+}
+
+/// A person's GitHub authorisation, used to list their repositories and add/remove Karya's webhook.
+/// The access token is encrypted with a key derived from AUTH_SECRET.
+model GithubAccount {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  login     String
+  token     String
+  scope     String   @default("")
   updatedAt DateTime @updatedAt
 }

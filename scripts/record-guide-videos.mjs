@@ -9,6 +9,7 @@
 // Each clip shows a visible cursor and a caption bar, since screen recordings don't show either.
 import { chromium } from "playwright";
 import { mkdirSync, readFileSync, rmSync } from "fs";
+import { helpers, overlay } from "./recording-kit.mjs";
 import path from "path";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
@@ -19,82 +20,6 @@ const [email, password] = readFileSync(".dev-credentials", "utf8").split("\n").f
 
 mkdirSync(OUT, { recursive: true });
 mkdirSync(TMP, { recursive: true });
-
-/** Cursor + caption overlay, and flags so tours, splash and greetings don't interrupt. */
-const overlay = () => {
-  try {
-    localStorage.setItem("karya:tour:welcome", "done");
-    localStorage.setItem("karya:tour:board", "done");
-    sessionStorage.setItem("karya:booted", "1");
-    sessionStorage.setItem("karya:greeted", "1");
-  } catch {}
-  const mount = () => {
-    if (document.getElementById("rec-cursor")) return;
-    const style = document.createElement("style");
-    style.textContent = `
-      #rec-cursor{position:fixed;left:0;top:0;width:22px;height:22px;z-index:2147483647;pointer-events:none;transform:translate(-3px,-2px);transition:transform .08s}
-      #rec-cursor.down{transform:translate(-3px,-2px) scale(.86)}
-      .rec-ripple{position:fixed;z-index:2147483646;pointer-events:none;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
-        border:2px solid #17a383;animation:rec-r .45s ease-out forwards}
-      @keyframes rec-r{from{opacity:.9;transform:scale(.3)}to{opacity:0;transform:scale(1.4)}}
-      #rec-cap{position:fixed;left:50%;bottom:28px;z-index:2147483645;pointer-events:none;transform:translate(-50%,8px);opacity:0;
-        max-width:760px;padding:11px 18px;border-radius:12px;background:rgba(17,17,16,.92);color:#fff;
-        font:500 16px/1.4 Inter,system-ui,sans-serif;letter-spacing:-.005em;box-shadow:0 10px 30px -8px rgba(0,0,0,.45);
-        transition:opacity .25s,transform .25s}
-      #rec-cap.on{opacity:1;transform:translate(-50%,0)}
-      #rec-cap.top{top:72px;bottom:auto}
-      #rec-cap b{color:#5fd4b6;font-weight:600}
-      #rec-cap kbd{display:inline-block;min-width:22px;padding:0 6px;margin:0 1px;border:1px solid rgba(255,255,255,.25);border-bottom-width:2px;
-        border-radius:5px;font:600 13px/20px Inter,system-ui,sans-serif;text-align:center;background:rgba(255,255,255,.08)}`;
-    document.head.appendChild(style);
-    const c = document.createElement("div");
-    c.id = "rec-cursor";
-    c.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 2.5v17.2l4.6-4.4 2.9 6.6 3-1.3-2.9-6.5h6.4z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
-    document.body.appendChild(c);
-    const cap = document.createElement("div");
-    cap.id = "rec-cap";
-    document.body.appendChild(cap);
-    const pos = JSON.parse(sessionStorage.getItem("rec-pos") || "[640,400]");
-    c.style.left = pos[0] + "px"; c.style.top = pos[1] + "px";
-    addEventListener("mousemove", (e) => { c.style.left = e.clientX + "px"; c.style.top = e.clientY + "px"; sessionStorage.setItem("rec-pos", JSON.stringify([e.clientX, e.clientY])); }, true);
-    addEventListener("mousedown", (e) => {
-      c.classList.add("down");
-      const r = document.createElement("div"); r.className = "rec-ripple"; r.style.left = e.clientX + "px"; r.style.top = e.clientY + "px";
-      document.body.appendChild(r); setTimeout(() => r.remove(), 500);
-    }, true);
-    addEventListener("mouseup", () => c.classList.remove("down"), true);
-    window.__cap = (html, top) => { cap.innerHTML = html || ""; cap.classList.toggle("on", !!html); cap.classList.toggle("top", !!top); };
-  };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
-};
-
-function helpers(page) {
-  const wait = (ms) => page.waitForTimeout(ms);
-  let at = { x: 640, y: 400 };
-  const moveTo = async (target, { dx = 0, dy = 0, steps = 28 } = {}) => {
-    const box = typeof target.boundingBox === "function" ? await target.boundingBox() : target;
-    const x = box.x + (box.width ?? 0) / 2 + dx, y = box.y + (box.height ?? 0) / 2 + dy;
-    await page.mouse.move(x, y, { steps });
-    at = { x, y };
-  };
-  return {
-    wait,
-    moveTo,
-    /** Caption bar at the bottom, or at the top when what we're showing sits at the bottom of the screen. */
-    caption: async (html, hold = 0, top = false) => { await page.evaluate(([h, t]) => window.__cap?.(h, t), [html, top]); if (hold) await wait(hold); },
-    click: async (loc, opts) => { await loc.scrollIntoViewIfNeeded(); await moveTo(loc, opts); await wait(220); await page.mouse.down(); await wait(70); await page.mouse.up(); },
-    type: async (text, delay = 55) => page.keyboard.type(text, { delay }),
-    drag: async (from, to) => {
-      await moveTo(from); await wait(250);
-      await page.mouse.down(); await wait(120);
-      await page.mouse.move(at.x + 12, at.y + 6, { steps: 4 });
-      const box = await to.boundingBox();
-      await page.mouse.move(box.x + box.width / 2, box.y + 70, { steps: 40 });
-      await wait(250); await page.mouse.up();
-    },
-    poster: (name) => page.screenshot({ path: path.join(OUT, `${name}.jpg`), type: "jpeg", quality: 82 }),
-  };
-}
 
 // The sprint's heading, not the <option> with the same name inside the pickers.
 const sprintTitle = (page) => page.locator('xpath=//*[not(self::option)][normalize-space(text())="WR Sprint 3"]').first();
@@ -128,8 +53,8 @@ const VIDEOS = {
     await page.goto(`${BASE}/projects/WR/board`);
     await page.getByText("Newsletter API endpoint").waitFor();
     await h.wait(700);
-    await h.caption("Press <kbd>C</kbd> anywhere to create an issue.", 1600);
-    await page.keyboard.press("c");
+    await h.caption("Click <b>New issue</b>, or press <kbd>C</kbd> anywhere.", 900);
+    await h.click(page.locator('header button[aria-label="New issue"]'));
     await page.getByPlaceholder("Issue title").waitFor();
     await h.wait(500);
     await h.caption("Write the title. Type <b>@</b> and your teammates appear.", 300);
@@ -171,14 +96,16 @@ const VIDEOS = {
     await h.type("!hi", 110); await h.wait(900); await page.keyboard.press("Enter"); await h.wait(300);
     await h.type("/bu", 110); await h.wait(800); await page.keyboard.press("Enter");
     await h.wait(500);
-    await h.caption("Your picks show as <b>colored chips</b>. Press <kbd>Enter</kbd> to add it.", 300, true);
+    await h.caption("Your picks show as <b>colored chips</b>. Click <b>Add issue</b> (or press <kbd>Enter</kbd>).", 300, true);
     await h.poster("quick-add");
-    await h.wait(2200);
-    await page.keyboard.press("Enter");
+    await h.wait(1800);
+    await h.click(page.getByRole("button", { name: "Add issue" }));
     await h.wait(1800);
     await h.moveTo(page.getByRole("link", { name: "Hero image blurry on retina screens" }));
     await h.wait(1600);
-    await page.keyboard.press("Escape");
+    await h.caption("The box stays open for the next one. <b>Cancel</b> closes it.", 300, true);
+    await h.click(page.getByRole("button", { name: "Cancel" }));
+    await h.wait(1200);
     await h.caption("", 600, true);
   },
 
@@ -344,7 +271,7 @@ for (const [name, run] of Object.entries(VIDEOS)) {
   await ctx.addInitScript(overlay);
   const page = await ctx.newPage();
   try {
-    await run(page, helpers(page));
+    await run(page, helpers(page, OUT));
   } catch (e) {
     console.error(`✗ ${name}:`, e.message);
   }
