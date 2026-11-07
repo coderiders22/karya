@@ -5,7 +5,8 @@ import clsx from "clsx";
 import type { IssueType, Priority, StatusCategory } from "@prisma/client";
 import { Check, ChevronDown, Plus, Search, Tag } from "lucide-react";
 import { ISSUE_TYPES, PRIORITIES } from "@/lib/constants";
-import { Avatar, LabelChip, PRIORITY_TINT, PriorityIcon, StatusPill, TypeIcon, labelDot } from "./IssueBits";
+import { Avatar, PRIORITY_TINT, PriorityIcon, StatusPill, TypeIcon } from "./IssueBits";
+import { LabelChip, LabelDot, LabelSwatches } from "./LabelColors";
 
 /**
  * Property pickers for issues: type, priority, assignee, labels. Real icons and colors instead of
@@ -183,7 +184,7 @@ export const labelItems = (all: string[], chosen: string[], q = ""): MenuItem[] 
   const items: MenuItem[] = all
     .filter((l) => !s || l.toLowerCase().includes(s))
     .slice(0, 50)
-    .map((l) => ({ value: l, label: l, icon: <span className={clsx("size-2.5 rounded-full", labelDot(l))} />, selected: chosen.includes(l) }));
+    .map((l) => ({ value: l, label: l, icon: <LabelDot name={l} />, selected: chosen.includes(l) }));
   if (s && !all.some((l) => l.toLowerCase() === s)) items.push({ value: s, label: `Create “${s}”`, icon: <Plus size={14} className="text-slate-400" />, create: true });
   return items;
 };
@@ -242,12 +243,9 @@ export function LabelPicker({ value, onChange, all, auto, onRemoveAuto, variant 
           ? <><Plus size={12} />{chosen.length ? "" : "Add label"}</>
           : <><Tag size={12} className="text-slate-400" />{chosen.length ? "Label" : "Add label"}</>}>
         {() => (
-          <SearchList
-            keepOpen
-            placeholder="Find or create a label…"
-            items={(q) => labelItems([...new Set([...chosen, ...all])], chosen, q)}
-            onPick={(it) => (chosen.includes(it.value) ? remove(it.value) : onChange([...value, it.value]))}
-            empty="Type to create a label"
+          <LabelMenu
+            all={[...new Set([...chosen, ...all])]} chosen={chosen}
+            onToggle={(l) => (chosen.includes(l) ? remove(l) : onChange([...value, l]))}
           />
         )}
       </Picker>
@@ -272,5 +270,71 @@ export function StatusPicker({ value, statuses, onChange, variant }: { value: st
         />
       )}
     </Picker>
+  );
+}
+
+/**
+ * Label menu: search, tick labels on and off, create a new one, and recolor any label by
+ * clicking its dot (the color changes everywhere).
+ */
+function LabelMenu({ all, chosen, onToggle }: { all: string[]; chosen: string[]; onToggle: (l: string) => void }) {
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState(0);
+  const [painting, setPainting] = useState<string | null>(null);
+  const items = labelItems(all, chosen, q);
+  const list = useRef<HTMLUListElement>(null);
+  useEffect(() => { list.current?.querySelector<HTMLElement>(`[data-i="${active}"]`)?.scrollIntoView({ block: "nearest" }); }, [active]);
+  const pick = (it: MenuItem) => { onToggle(it.value); if (it.create) setPainting(it.value); setQ(""); setActive(0); };
+  return (
+    <>
+      <div className="flex items-center gap-2 border-b border-slate-200 px-3 dark:border-slate-800">
+        <Search size={13} className="shrink-0 text-slate-400" />
+        <input
+          autoFocus value={q} placeholder="Find or create a label…"
+          onChange={(e) => { setQ(e.target.value); setActive(0); }}
+          onKeyDown={(e) => navKey(e, items.length, active, setActive, () => items[active] && pick(items[active]))}
+          className="h-9 w-full bg-transparent text-[13px] outline-none placeholder:text-slate-400"
+        />
+      </div>
+      {items.length === 0 ? <p className="px-3 py-2.5 text-[13px] text-muted">Type to create a label</p> : (
+        <ul ref={list} role="listbox" aria-multiselectable className="max-h-72 overflow-y-auto p-1">
+          {items.map((it, i) => (
+            <li key={(it.create ? "+" : "") + it.value} role="option" aria-selected={!!it.selected} data-i={i}>
+              <div className={clsx("flex items-center gap-1 rounded-md pr-2", i === active && "bg-slate-100 dark:bg-slate-800")} onMouseMove={() => setActive(i)}>
+                {it.create ? (
+                  <span className="grid size-8 shrink-0 place-items-center text-slate-400"><Plus size={14} /></span>
+                ) : (
+                  <button type="button" tabIndex={-1} onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setPainting(painting === it.value ? null : it.value)}
+                    title="Change color" aria-label={`Change color of ${it.value}`} aria-expanded={painting === it.value}
+                    className="grid size-8 shrink-0 place-items-center rounded-md hover:bg-slate-200/70 dark:hover:bg-slate-700">
+                    <LabelDot name={it.value} className="!size-3" />
+                  </button>
+                )}
+                <button type="button" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(it)}
+                  className="flex h-8 min-w-0 flex-1 items-center gap-2 text-left text-[13px] text-slate-900 dark:text-slate-100">
+                  <span className="truncate">{it.label}</span>
+                </button>
+                {it.selected && <Check size={14} className="shrink-0 text-brand" strokeWidth={2.5} />}
+              </div>
+              {painting === it.value && !it.create && (
+                <div className="mx-1 mb-1 rounded-md bg-slate-50 px-2 py-2 dark:bg-slate-800/60">
+                  <LabelSwatches name={it.value} size="sm" onPicked={() => setPainting(null)} />
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {painting && !all.includes(painting) && chosen.includes(painting) && (
+        <div className="border-t border-slate-200 px-3 py-2 dark:border-slate-800">
+          <div className="mb-1.5 text-[11.5px] text-muted">Color for “{painting}”</div>
+          <LabelSwatches name={painting} size="sm" onPicked={() => setPainting(null)} />
+        </div>
+      )}
+      <a href="/settings/labels" className="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-[12px] text-muted hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:hover:bg-slate-800/60 dark:hover:text-white">
+        Edit labels<span aria-hidden>→</span>
+      </a>
+    </>
   );
 }

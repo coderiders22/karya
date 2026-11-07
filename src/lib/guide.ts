@@ -86,12 +86,25 @@ export const GUIDE: GuideSection[] = [
         id: "colors", title: "Labels, priorities and their colors",
         summary: "Colors carry meaning in Karya, so you can scan a board without reading every word.",
         steps: [
-          "**Priority**: red Highest (drop everything), orange High (do next), amber Medium (normal), blue Low (when there's time), grey Lowest (someday).",
+          "**Priority** reads like signal bars: the more bars filled, the higher it is. Three orange bars = High (do next), two amber = Medium (normal), one blue = Low (when there's time), none = Lowest (someday). A solid **red square with !** = Highest: drop everything.",
           "**Status**: grey for to do, blue for in progress, green for done.",
-          "**Labels**: every label keeps the same color everywhere (board, lists, side panel). Add them with `#` while typing a title, or with the **+** next to existing labels. Typing a new name creates the label.",
+          "**Labels**: every label keeps its color everywhere (board, lists, side panel). **You choose the color**: in any label menu, click the colored dot next to a label and pick one of 12 colors. A new label opens the palette straight away.",
           "**Violet** tags on a card name its epic. **Red Blocked** means another issue is holding it up; an **amber** timer means it has waited too long.",
         ],
-        keywords: "label labels tag color colour priority status meaning legend epic blocked",
+        keywords: "label labels tag color colour priority status meaning legend epic blocked icon signal bars",
+      },
+      {
+        id: "manage-labels", title: "Manage labels",
+        summary: "One page with every label in the workspace: how much each is used, its color, and clean-up tools.",
+        steps: [
+          "Open your name at the bottom of the sidebar and choose **Labels**, or click **Edit labels** at the bottom of any label menu.",
+          "Click a color to recolor a label. It changes on every issue, for the whole team, straight away.",
+          "Click the issue count to see every issue with that label.",
+          "Admins can **rename** a label (pencil) or **delete** it (bin). Renaming updates every issue that has it; deleting removes it from issues but keeps the issues.",
+        ],
+        result: "Handy for tidying typos like “fronted” into “frontend”, so filters and reports stay accurate.",
+        action: { label: "Open Labels", href: "/settings/labels" },
+        keywords: "labels manage rename delete color colour tidy clean merge tag",
       },
       {
         id: "issue-page", title: "Work on an issue",

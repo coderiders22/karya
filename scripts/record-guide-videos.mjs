@@ -206,7 +206,10 @@ const VIDEOS = {
     await h.click(panel.getByRole("button", { name: "Labels" }));
     await h.wait(500);
     await h.type("api", 100); await h.wait(800);
-    await page.keyboard.press("Enter"); await h.wait(500);
+    await page.keyboard.press("Enter"); await h.wait(600);
+    await h.caption("A new label opens the color palette. Pick any color; it applies everywhere.");
+    await h.click(page.locator('[aria-label="Color for api"] [title="Indigo"]'));
+    await h.wait(1400);
     await page.keyboard.press("Escape");
     await h.wait(900);
     await h.caption("Reply at the bottom. <b>@</b> brings up teammates to mention.");

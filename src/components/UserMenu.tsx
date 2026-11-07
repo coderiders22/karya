@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BookOpen, ChevronsUpDown, DatabaseBackup, KeyRound, LogOut, Keyboard, Map, Users } from "lucide-react";
+import { BookOpen, ChevronsUpDown, DatabaseBackup, KeyRound, LogOut, Keyboard, Map, Tag, Users } from "lucide-react";
 import { startTour } from "./Tour";
 import { Avatar } from "./IssueBits";
 import { ThemeSwitcher } from "./ThemeSwitcher";
@@ -23,6 +23,7 @@ export function UserMenu({ name, email, role, logout }: { name: string; email: s
           <div className="px-2 py-1.5 text-xs text-muted">{email}</div>
           <Link href="/settings/profile" className={item}><KeyRound size={15} className="text-slate-400" />Profile & password</Link>
           <Link href="/settings/members" className={item}><Users size={15} className="text-slate-400" />Team members</Link>
+          <Link href="/settings/labels" className={item}><Tag size={15} className="text-slate-400" />Labels</Link>
           {role === "ADMIN" && <Link href="/settings/import" className={item}><DatabaseBackup size={15} className="text-slate-400" />Import & backup</Link>}
           <button className={item} onClick={() => window.dispatchEvent(new Event("trackr:shortcuts"))}><Keyboard size={15} className="text-slate-400" />Keyboard shortcuts<span className="kbd ml-auto">?</span></button>
           <button className={item} onClick={() => startTour(/^\/projects\/[^/]+\/board$/.test(location.pathname) ? "board" : "welcome")}><Map size={15} className="text-slate-400" />Take the tour</button>

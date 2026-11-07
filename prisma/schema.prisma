@@ -282,3 +282,11 @@ model DevActivity {
 
   @@unique([issueId, kind, externalId])
 }
+
+/// A color someone chose for a label. Labels are plain names on issues, so a label without a row
+/// here gets a stable default color from its name. Shared by every project.
+model LabelColor {
+  name      String   @id
+  color     String
+  updatedAt DateTime @updatedAt
+}

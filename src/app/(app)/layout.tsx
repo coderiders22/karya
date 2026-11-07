@@ -9,10 +9,11 @@ import { Shortcuts } from "@/components/Shortcuts";
 import { IssuePeek } from "@/components/IssuePeek";
 import { SplashScreen } from "@/components/SplashScreen";
 import { TourHost } from "@/components/Tour";
+import { LabelColorsProvider } from "@/components/LabelColors";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const [projects, users, filters] = await Promise.all([
+  const [projects, users, filters, labelColors] = await Promise.all([
     db.project.findMany({ select: { id: true, key: true, name: true, color: true }, orderBy: { name: "asc" } }),
     db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.savedFilter.findMany({
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       orderBy: { name: "asc" },
       select: { id: true, name: true, query: true, projectId: true },
     }),
+    db.labelColor.findMany({ select: { name: true, color: true } }),
   ]);
   const keyById = Object.fromEntries(projects.map((p) => [p.id, p.key]));
   const filterLinks = filters.map((f) => ({
@@ -28,6 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     href: f.projectId && keyById[f.projectId] ? `/projects/${keyById[f.projectId]}/issues?${f.query}` : `/filters?${f.query}`,
   }));
   return (
+    <LabelColorsProvider initial={Object.fromEntries(labelColors.map((l) => [l.name, l.color]))}>
     <div className="min-h-screen lg:flex">
       <SplashScreen />
       <Sidebar projects={projects} filters={filterLinks}
@@ -39,5 +42,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <IssuePeek meId={user.id} />
       <TourHost userName={user.name} />
     </div>
+    </LabelColorsProvider>
   );
 }
