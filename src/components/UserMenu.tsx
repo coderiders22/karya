@@ -6,8 +6,11 @@ import { BookOpen, ChevronsUpDown, DatabaseBackup, KeyRound, LogOut, Keyboard, M
 import { startTour } from "./Tour";
 import { Avatar } from "./IssueBits";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { useAccess } from "./Access";
 
 export function UserMenu({ name, email, role, logout }: { name: string; email: string; role: string; logout: () => Promise<void> }) {
+  const { mode } = useAccess();
+  const roleLine = mode === "STUDENT" ? "Student" : role.toLowerCase();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -22,9 +25,9 @@ export function UserMenu({ name, email, role, logout }: { name: string; email: s
         <div className="card absolute bottom-full left-0 mb-2 w-full origin-bottom animate-pop p-1 shadow-xl" onClick={() => setOpen(false)}>
           <div className="px-2 py-1.5 text-xs text-muted">{email}</div>
           <Link href="/settings/profile" className={item}><KeyRound size={15} className="text-slate-400" />Profile & password</Link>
-          <Link href="/settings/members" className={item}><Users size={15} className="text-slate-400" />Team members</Link>
+          {mode !== "STUDENT" && <Link href="/settings/members" className={item}><Users size={15} className="text-slate-400" />Team members</Link>}
           <Link href="/settings/labels" className={item}><Tag size={15} className="text-slate-400" />Labels</Link>
-          {role === "ADMIN" && <Link href="/settings/import" className={item}><DatabaseBackup size={15} className="text-slate-400" />Import & backup</Link>}
+          {role === "ADMIN" && mode !== "STUDENT" && <Link href="/settings/import" className={item}><DatabaseBackup size={15} className="text-slate-400" />Import & backup</Link>}
           <button className={item} onClick={() => window.dispatchEvent(new Event("trackr:shortcuts"))}><Keyboard size={15} className="text-slate-400" />Keyboard shortcuts<span className="kbd ml-auto">?</span></button>
           <button className={item} onClick={() => startTour(/^\/projects\/[^/]+\/board$/.test(location.pathname) ? "board" : "welcome")}><Map size={15} className="text-slate-400" />Take the tour</button>
           <Link href="/guide" className={item}><BookOpen size={15} className="text-slate-400" />Guide & videos</Link>
@@ -37,7 +40,7 @@ export function UserMenu({ name, email, role, logout }: { name: string; email: s
         <Avatar name={name} size={6} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[13px] font-medium">{name}</span>
-          <span className="block text-[11px] capitalize text-muted">{role.toLowerCase()}</span>
+          <span className="block text-[11px] capitalize text-muted">{roleLine}</span>
         </span>
         <ChevronsUpDown size={14} className="text-slate-400" />
       </button>

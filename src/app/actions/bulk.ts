@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireEditor, requireUser } from "@/lib/auth";
+import { isAdmin, manageableProjects, visibleProjects } from "@/lib/permissions";
 import { updateIssueField } from "./issues";
 
 const FIELDS = ["statusName", "assigneeId", "priority", "sprintId", "type", "addLabel"] as const;
@@ -12,9 +13,9 @@ const FIELDS = ["statusName", "assigneeId", "priority", "sprintId", "type", "add
  * Returns how many issues changed and how many were skipped (e.g. no status with that name).
  */
 export async function bulkUpdate(ids: string[], field: (typeof FIELDS)[number], value: string) {
-  await requireUser();
+  const user = await requireEditor();
   if (!FIELDS.includes(field)) throw new Error("Unsupported field");
-  const issues = await db.issue.findMany({ where: { id: { in: ids.slice(0, 500) } }, select: { id: true, projectId: true, labels: true } });
+  const issues = await db.issue.findMany({ where: { id: { in: ids.slice(0, 500) }, project: visibleProjects(user) }, select: { id: true, projectId: true, labels: true } });
   let changed = 0, skipped = 0;
   for (const issue of issues) {
     if (field === "statusName") {
@@ -39,9 +40,8 @@ export async function bulkUpdate(ids: string[], field: (typeof FIELDS)[number], 
 }
 
 export async function bulkDelete(ids: string[]) {
-  const user = await requireUser();
-  if (user.role !== "ADMIN") throw new Error("Only admins can bulk delete");
-  const { count } = await db.issue.deleteMany({ where: { id: { in: ids.slice(0, 500) } } });
+  const user = await requireEditor();
+  const { count } = await db.issue.deleteMany({ where: { id: { in: ids.slice(0, 500) }, project: manageableProjects(user) } });
   revalidatePath("/", "layout");
   return count;
 }
@@ -49,14 +49,15 @@ export async function bulkDelete(ids: string[]) {
 export async function saveFilter(name: string, query: string, projectId: string | null, shared: boolean) {
   const user = await requireUser();
   if (!name.trim()) return;
+  if (projectId && !(await db.project.count({ where: { id: projectId, ...visibleProjects(user) } }))) return;
   await db.savedFilter.create({ data: { name: name.trim().slice(0, 60), query, projectId, shared, ownerId: user.id } });
   revalidatePath("/", "layout");
 }
 
 export async function deleteFilter(id: string) {
   const user = await requireUser();
-  const f = await db.savedFilter.findUniqueOrThrow({ where: { id } });
-  if (f.ownerId !== user.id && user.role !== "ADMIN") throw new Error("Not your filter");
+  const f = await db.savedFilter.findFirstOrThrow({ where: { id, owner: { workspaceId: user.workspaceId } } });
+  if (f.ownerId !== user.id && !isAdmin(user.role)) throw new Error("Not your filter");
   await db.savedFilter.delete({ where: { id } });
   revalidatePath("/", "layout");
 }

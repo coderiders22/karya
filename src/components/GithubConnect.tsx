@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ExternalLink, Github, Lock, Search } from "lucide-react";
+import { Activity, Check, CircleAlert, CircleCheck, ExternalLink, Github, Loader2, Lock, Search } from "lucide-react";
 import { toast } from "sonner";
-import { connectGithubRepo, disconnectGithubRepo, forgetGithubAccount, listGithubRepos } from "@/app/actions/github";
+import { checkGithubConnection, connectGithubRepo, disconnectGithubRepo, forgetGithubAccount, linkRepoByHand, listGithubRepos } from "@/app/actions/github";
 import { confirmDialog } from "./Dialog";
 import { timeAgo } from "./NotificationBell";
 
@@ -16,7 +16,10 @@ type Props = {
   login: string | null;
   status: string | null;
   automation: boolean;
-  manual: React.ReactNode;
+  canManage: boolean;
+  lastEventAt: string | null;
+  lastEventType: string | null;
+  hasHook: boolean;
 };
 
 const MESSAGES: Record<string, string> = {
@@ -28,7 +31,7 @@ const MESSAGES: Record<string, string> = {
 };
 
 /** Project settings → GitHub: connect a repository in a few clicks, see what's connected, disconnect. */
-export function GithubConnect({ projectId, projectKey, configured, repo, login, status, automation, manual }: Props) {
+export function GithubConnect({ projectId, projectKey, configured, repo, login, status, automation, canManage, lastEventAt, lastEventType, hasHook }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -55,7 +58,8 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
       </p>
 
       {repo ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60">
+        <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center gap-3 bg-slate-50 px-4 py-3 dark:bg-slate-900/60">
           <span className="grid size-9 place-items-center rounded-full bg-slate-900 text-white dark:bg-white dark:text-slate-900"><Github size={18} /></span>
           <div className="min-w-0 flex-1">
             <a href={`https://github.com/${repo}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium hover:underline">
@@ -63,7 +67,7 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
             </a>
             <div className="text-xs text-muted">Pushes, branches and pull requests are sent to Karya.</div>
           </div>
-          <button className="btn" disabled={pending} onClick={async () => {
+          {canManage && <button className="btn" disabled={pending} onClick={async () => {
             const ok = await confirmDialog({
               title: `Disconnect ${repo}?`,
               message: "Karya removes its webhook from the repository. Links already on issues stay.",
@@ -75,15 +79,14 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
               if (r.warning) toast.warning(r.warning); else toast.success(`Disconnected ${repo}`);
               router.refresh();
             });
-          }}>Disconnect</button>
+          }}>Disconnect</button>}
         </div>
+        <ConnectionHealth projectId={projectId} projectKey={projectKey} canManage={canManage} hasHook={hasHook} lastEventAt={lastEventAt} lastEventType={lastEventType} />
+        </div>
+      ) : !canManage ? (
+        <p className="text-sm text-muted">A manager or this project's lead can connect a repository.</p>
       ) : !configured ? (
-        <>
-          <p className="mb-3 rounded-md bg-slate-50 px-3 py-2 text-[13px] text-slate-600 dark:bg-slate-900/60 dark:text-slate-400">
-            For one-click connect, an admin adds <code className="font-mono">GITHUB_CLIENT_ID</code> and <code className="font-mono">GITHUB_CLIENT_SECRET</code> from a GitHub OAuth App to the server. Until then, add the webhook by hand:
-          </p>
-          {manual}
-        </>
+        <ManualSetup projectId={projectId} />
       ) : login ? (
         <RepoPicker projectId={projectId} login={login} connectHref={connectHref} />
       ) : (
@@ -92,13 +95,89 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
           <p className="mt-2 text-xs text-muted">
             GitHub will ask to let Karya see your repositories and manage webhooks. Karya only adds one webhook to the repository you pick; it never reads or changes your code.
           </p>
-          <details className="mt-4 text-[13px]">
-            <summary className="cursor-pointer text-muted hover:text-slate-900 dark:hover:text-white">Set up the webhook by hand instead</summary>
-            <div className="mt-3">{manual}</div>
-          </details>
         </>
       )}
     </section>
+  );
+}
+
+/** Answers "is it actually working?": what Karya has received, a live test, and how to see it work. */
+function ConnectionHealth({ projectId, projectKey, canManage, hasHook, lastEventAt, lastEventType }: {
+  projectId: string; projectKey: string; canManage: boolean; hasHook: boolean; lastEventAt: string | null; lastEventType: string | null;
+}) {
+  const router = useRouter();
+  const [checking, start] = useTransition();
+  const [result, setResult] = useState<{ state: "ok" | "failing" | "unknown"; message: string }>();
+  const LABEL: Record<string, string> = { ping: "test ping", push: "push", pull_request: "pull request", create: "new branch" };
+  return (
+    <div className="space-y-3 border-t border-slate-200 px-4 py-3 text-[13px] dark:border-slate-800">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {lastEventAt ? (
+          <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400"><CircleCheck size={15} />Last received: {LABEL[lastEventType ?? ""] ?? lastEventType ?? "event"}, {timeAgo(lastEventAt)}</span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400"><CircleAlert size={15} />Nothing received from GitHub yet</span>
+        )}
+        {canManage && hasHook && (
+          <button className="btn !h-7 text-xs" disabled={checking} onClick={() => start(async () => {
+            const r = await checkGithubConnection(projectId);
+            setResult(r);
+            router.refresh();
+          })}>
+            {checking ? <><Loader2 size={13} className="animate-spin" />Testing…</> : <><Activity size={13} />Test connection</>}
+          </button>
+        )}
+      </div>
+      {result && (
+        <p role="status" className={`rounded-md px-3 py-2 ${result.state === "ok" ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300" : result.state === "failing" ? "bg-rose-50 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300" : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"}`}>{result.message}</p>
+      )}
+      <details className="text-muted">
+        <summary className="cursor-pointer hover:text-slate-900 dark:hover:text-white">How to see it work</summary>
+        <ol className="mt-2 list-decimal space-y-1 pl-5">
+          <li>Create a branch named after an issue, for example <code className="font-mono">{projectKey.toLowerCase()}-1-fix-login</code>, and push it.</li>
+          <li>Open that issue in Karya: the branch appears under <b>Development</b>.</li>
+          <li>Open a pull request from it: the issue moves to review. Merge it: the issue moves to done.</li>
+        </ol>
+        <p className="mt-2">Work is only linked when the branch, commit or PR mentions an issue key. New issues on GitHub don't create cards.</p>
+      </details>
+    </div>
+  );
+}
+
+/** For servers without a GitHub OAuth app: link by hand, with a secret that's shown once. */
+function ManualSetup({ projectId }: { projectId: string }) {
+  const router = useRouter();
+  const [repo, setRepo] = useState("");
+  const [made, setMade] = useState<{ secret: string; url: string }>();
+  const [error, setError] = useState<string>();
+  const [pending, start] = useTransition();
+  if (made) {
+    return (
+      <div className="space-y-2 text-[13px]">
+        <p>In your repository, open <b>Settings → Webhooks → Add webhook</b> and enter:</p>
+        <dl className="space-y-1 rounded-md bg-slate-50 p-3 dark:bg-slate-900/60">
+          <div><dt className="inline text-muted">Payload URL: </dt><dd className="inline select-all break-all font-mono text-[12px]">{made.url}</dd></div>
+          <div><dt className="inline text-muted">Content type: </dt><dd className="inline font-mono text-[12px]">application/json</dd></div>
+          <div><dt className="inline text-muted">Secret: </dt><dd className="inline select-all break-all font-mono text-[12px]">{made.secret}</dd></div>
+          <div><dt className="inline text-muted">Events: </dt><dd className="inline">Pushes, Pull requests, Branch or tag creation</dd></div>
+        </dl>
+        <p className="text-xs text-muted">Copy the secret now: it isn't shown again.</p>
+        <button className="btn" onClick={() => router.refresh()}>Done</button>
+      </div>
+    );
+  }
+  return (
+    <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); start(async () => {
+      const r = await linkRepoByHand(projectId, repo);
+      setError(r.error);
+      if (r.secret && r.url) setMade({ secret: r.secret, url: r.url });
+    }); }}>
+      <label className="block text-[13px]">
+        <span className="label">Repository</span>
+        <input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="owner/name" className="input mt-1 font-mono" required />
+      </label>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <button className="btn" disabled={pending}>Create webhook details</button>
+    </form>
   );
 }
 

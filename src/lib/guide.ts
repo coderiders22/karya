@@ -18,12 +18,70 @@ export type GuideTopic = {
   action?: { label: string; tour?: "welcome" | "board"; href?: string };
   /** Only shown to admins. */
   admin?: boolean;
+  /** About workspace-wide teams, which student accounts don't have. */
+  teamsOnly?: boolean;
   keywords?: string;
 };
 
-export type GuideSection = { id: string; title: string; topics: GuideTopic[] };
+export type GuideSection = { id: string; title: string; topics: GuideTopic[]; /** Only shown to student accounts. */ studentsOnly?: boolean };
 
 export const GUIDE: GuideSection[] = [
+  {
+    id: "student", title: "For students", studentsOnly: true,
+    topics: [
+      {
+        id: "student-start", title: "Start a project from a template",
+        summary: "Major project, minor project, hackathon and more: a board with the usual steps already laid out.",
+        steps: [
+          "Open **Projects**, choose what you're working on, and give it a name.",
+          "Add the deadline if you know it. Each step then gets a due date, worked back from the deadline.",
+          "Click **Create board**. Change, delete or add steps whenever you like: it's your board.",
+        ],
+        result: "You get the right columns too. Major and minor projects have a **With guide** column for work waiting on your project guide's review.",
+        keywords: "major minor project hackathon template final year research paper club fest event group assignment placement semester",
+      },
+      {
+        id: "student-team", title: "Bring your team in",
+        summary: "One link per project, so you can be on different teams with different people, even from other colleges.",
+        steps: [
+          "Open the project's **Team** page and click **Copy link** or **WhatsApp**.",
+          "Teammates open the link. If they're new they create an account, and either way they land on your board.",
+          "If the link gets out, click **New link**. The old one stops working and your team stays. The lead can also remove someone.",
+        ],
+        result: "Teammates can add and move tasks. Only the lead can change the project's settings or remove people.",
+        keywords: "invite team teammates link join whatsapp group lead remove leave",
+      },
+      {
+        id: "student-who", title: "See who's doing what",
+        summary: "No surprises in the last week, and no arguments about who did the work.",
+        steps: [
+          "The project's **Team** page counts each person's tasks: to do, doing and done, with anything overdue flagged.",
+          "It also tells you when tasks have nobody on them, so nothing falls through the gap.",
+          "Assign a task from the board. Right-click a card, or open it and pick a person.",
+        ],
+        keywords: "contribution workload who did what assign split work free rider viva",
+      },
+      {
+        id: "student-deadlines", title: "Deadlines and your day",
+        summary: "A countdown for every project, and all your tasks in one list.",
+        steps: [
+          "Each project shows a countdown at the top of its pages. Change the deadline in the project's **Settings**.",
+          "**Today** lists every deadline, then your tasks across all projects, soonest first.",
+          "Connect GitHub in **Settings** and cards move as you push code: handy when a hackathon leaves no time to update a board.",
+        ],
+        keywords: "deadline countdown today due date overdue submission github",
+      },
+      {
+        id: "student-solo", title: "Plan things on your own",
+        summary: "Not everything is a group project.",
+        steps: [
+          "Start a **Semester plan** for exam prep, lab files and assignments, or **Placement prep** for your resume and practice.",
+          "These are private until you share the link. Nobody can see a board unless they've joined it.",
+        ],
+        keywords: "semester exam prep placement resume personal private solo",
+      },
+    ],
+  },
   {
     id: "start", title: "Getting started",
     topics: [
@@ -40,6 +98,7 @@ export const GUIDE: GuideSection[] = [
       },
       {
         id: "first-project", title: "Create your first project",
+        teamsOnly: true,
         summary: "A project holds one team's or product's work. Its short key numbers every issue, like WR-12.",
         steps: [
           "Go to **Projects** in the sidebar and fill in the **New project** form.",
@@ -312,12 +371,14 @@ export const GUIDE: GuideSection[] = [
           "In project **Settings → GitHub**, click **Connect GitHub**, allow Karya on GitHub, then pick the repository. Karya adds its webhook by itself (you need admin rights on the repository).",
           "Mention the issue key in a branch name, commit or PR title, for example `wr-12-fix-login`.",
           "Right-click a card and choose **Copy git branch command** to get a correctly named branch.",
+          "To check it's working, click **Test connection** in the same place. **Your work** also shows each connected repository and when Karya last heard from it.",
         ],
-        result: "Opening a PR moves the issue to review; merging moves it to done. **Disconnect** in the same place removes the webhook again.",
-        keywords: "github git pull request pr branch commit webhook automation connect oauth repository",
+        result: "Opening a PR moves the issue to review; merging moves it to done. New issues on GitHub don't create cards. **Disconnect** in the same place removes the webhook again.",
+        keywords: "github git pull request pr branch commit webhook automation connect oauth repository status working test",
       },
       {
         id: "jira", title: "Move to or from Jira",
+        teamsOnly: true,
         summary: "Bring existing Jira projects in, or take a project back to Jira at any time.",
         steps: [
           "**Import**: in Jira, export your issues as **CSV (all fields)**. In Karya, open **Import & backup**, choose the file and a project.",
@@ -329,6 +390,7 @@ export const GUIDE: GuideSection[] = [
       },
       {
         id: "backup", title: "Back up your data",
+        teamsOnly: true,
         summary: "Keep your own copy of everything.",
         steps: ["Open **Import & backup** and click **Download JSON backup**. Doing this weekly is a good habit."],
         admin: true,
@@ -341,20 +403,44 @@ export const GUIDE: GuideSection[] = [
     topics: [
       {
         id: "invite", title: "Invite your team",
-        summary: "Karya has no public sign-up: people join through a link you send them.",
+        teamsOnly: true,
+        summary: "Your workspace is private: people join through a link you send them.",
         steps: [
           "Open **Team** in the sidebar.",
-          "Optionally type their email (the link then only works for that address), choose **Member** or **Admin**, and click **Create invite link**.",
+          "Optionally type their email (the link then only works for that address), choose their role, and click **Create invite link**.",
           "Copy the link and send it on Slack, WhatsApp or email. It's valid for 7 days.",
           "They open it, choose a name and password, and they're in.",
         ],
-        result: "Admins can invite people, change roles, import from Jira and download backups. Members do everything else.",
         video: "invite",
         admin: true,
-        keywords: "invite add member user team role admin signup join",
+        keywords: "invite add member user team join",
+      },
+      {
+        id: "roles", title: "Roles: who can do what",
+        teamsOnly: true,
+        summary: "Give each person the access they need. Change it any time from **Team**.",
+        steps: [
+          "**Viewer** can see everything but change nothing. Good for stakeholders.",
+          "**Member** creates and edits issues, comments, and can start projects. Whoever leads a project can manage that project.",
+          "**Manager** can also run any project: sprints, columns, GitHub, deleting issues.",
+          "**Admin** can also run the workspace: people, roles, invites, import and backups.",
+        ],
+        keywords: "role permission access admin manager member viewer read only",
+      },
+      {
+        id: "forgot", title: "Forgot your password",
+        summary: "Request a reset link from the login page.",
+        steps: [
+          "On the login page, click **Forgot password?**, enter your email and send the request.",
+          "A reset link reaches your email within 24 to 48 hours. Check your spam folder too.",
+          "Open it and choose a new password. The link works once and expires after 48 hours.",
+        ],
+        result: "On a work team you don't have to wait: your admin can send you a link straight away from **Team**.",
+        keywords: "forgot password reset login locked out email link",
       },
       {
         id: "reset", title: "Reset a teammate's password",
+        teamsOnly: true,
         summary: "For when someone forgets their password.",
         steps: [
           "In **Team**, click the key icon next to their name.",

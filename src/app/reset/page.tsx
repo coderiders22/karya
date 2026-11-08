@@ -9,8 +9,11 @@ export default async function ResetPage({ searchParams }: { searchParams: Promis
   const reset = token ? await db.passwordReset.findUnique({ where: { token }, include: { user: { select: { name: true, email: true } } } }) : null;
   if (!reset || reset.usedAt || reset.expiresAt < new Date()) {
     return (
-      <AuthCard title="This link has expired" subtitle="Reset links work once and last 24 hours. Ask a workspace admin for a fresh one.">
-        <a href="/login" className="btn !h-10 w-full">Back to log in</a>
+      <AuthCard title="This link has expired" subtitle="Reset links work once and only last a limited time. You can request a new one.">
+        <div className="space-y-2">
+          <a href="/forgot" className="btn-primary !h-10 w-full text-[14px]">Request a new link</a>
+          <a href="/login" className="btn !h-10 w-full text-[14px]">Back to log in</a>
+        </div>
       </AuthCard>
     );
   }

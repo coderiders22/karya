@@ -24,8 +24,16 @@
 - ⌘K command palette, `C` to create, dark mode
 - **Built-in guide:** a guided tour on first login, and a Guide page that explains every feature step by step, with short videos recorded from the real app (`scripts/record-guide-videos.mjs` re-records them)
 
+**Student teams**
+- Choose "I'm a student" at sign-up: your home screen and tools follow
+- Start a board from a template (major project, minor project, hackathon, research paper, club event and more), with the usual steps dated back from your deadline
+- Teammates join a project with one link, even from other colleges, and a project's Team page shows who's doing what
+- A live countdown to every deadline, and all your tasks across projects in one list
+
 **Team & data**
-- Invite links, Admin/Member roles, profile and password settings
+- Free sign-up: every team or student gets a private workspace of their own
+- Forgot password: people request a link, and the site owner creates and emails it from an owner-only page
+- Invite links, Viewer/Member/Manager/Admin roles, profile and password settings
 - **Import from Jira** (Jira's "Export CSV (all fields)") and **export to Jira** (Project settings → Download Jira CSV)
 - One-click JSON backup for admins
 
@@ -43,7 +51,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Open `APP_URL`. The first visit asks you to create the **admin account**. Then invite teammates from the avatar menu → **Team members**.
+Open `APP_URL` and click **Create a free workspace**. You become its admin. Then invite teammates from **Team**.
 
 Database migrations run automatically on every start. Data lives in the `db-data` Docker volume and uploaded files in the `uploads` volume. Back it up with:
 

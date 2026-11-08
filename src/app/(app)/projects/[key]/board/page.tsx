@@ -6,6 +6,7 @@ import { loadCards } from "@/lib/cards";
 import { forecastSprint } from "@/lib/forecast";
 import { Board } from "@/components/Board";
 import { CompleteSprintButton } from "@/components/SprintControls";
+import { canManageProject, projectPeople } from "@/lib/permissions";
 import { SprintForecast } from "@/components/SprintForecast";
 
 export default async function BoardPage({ params }: { params: Promise<{ key: string }> }) {
@@ -19,7 +20,7 @@ export default async function BoardPage({ params }: { params: Promise<{ key: str
       type: { not: "EPIC" },
       ...(active ? { sprintId: active.id } : { OR: [{ sprintId: null }, { sprint: { state: { not: "CLOSED" } } }] }),
     }),
-    db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: projectPeople(project), select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.sprint.findMany({ where: { projectId: project.id, state: "FUTURE" }, select: { id: true, name: true } }),
     active ? db.issue.findMany({ where: { sprintId: active.id }, select: { storyPoints: true, resolvedAt: true } }) : [],
   ]);
@@ -37,7 +38,7 @@ export default async function BoardPage({ params }: { params: Promise<{ key: str
               {active.goal && <div className="truncate text-xs text-muted">{active.goal}</div>}
             </div>
             {forecast && <div data-tour="forecast" className="order-last basis-full sm:order-none sm:ml-4 sm:basis-auto sm:min-w-0 sm:flex-1"><SprintForecast f={forecast} /></div>}
-            <CompleteSprintButton sprintId={active.id} name={active.name} openCount={openCount} futureSprints={futureSprints} />
+            {canManageProject(me, project) && <CompleteSprintButton sprintId={active.id} name={active.name} openCount={openCount} futureSprints={futureSprints} />}
           </>
         ) : (
           <p className="text-[13px] text-muted">

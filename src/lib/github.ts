@@ -11,12 +11,12 @@ export function verifySignature(body: string, header: string | null, secret: str
 }
 
 /** Finds issue keys like WR-12 (case-insensitive, so branch names like wr-12-fix work). */
-export async function findIssues(...texts: (string | null | undefined)[]) {
+export async function findIssues(projectIds: string[], ...texts: (string | null | undefined)[]) {
   const keys = new Set<string>();
   for (const t of texts) for (const m of (t ?? "").matchAll(/\b([a-z][a-z0-9]{1,9}-\d+)\b/gi)) keys.add(m[1].toUpperCase());
   if (keys.size === 0) return [];
   return db.issue.findMany({
-    where: { key: { in: [...keys] } },
+    where: { key: { in: [...keys] }, projectId: { in: projectIds } },
     include: { status: true, project: { include: { statuses: { orderBy: { position: "asc" } } } } },
   });
 }
@@ -39,7 +39,7 @@ export async function autoTransition(issue: Issue, target: "review" | "done", re
     ? statuses.find((s) => s.category === "DONE")
     : statuses.find((s) => s.category === "IN_PROGRESS" && /review|qa|test/i.test(s.name)) ?? statuses.find((s) => s.category === "IN_PROGRESS");
   if (!next || next.id === issue.statusId || next.position < issue.status.position) return;
-  const actor = await db.user.findFirst({ where: { OR: [{ id: issue.project.leadId ?? "" }, { role: "ADMIN" }] }, orderBy: { createdAt: "asc" } });
+  const actor = await db.user.findFirst({ where: { workspaceId: issue.project.workspaceId, OR: [{ id: issue.project.leadId ?? "" }, { role: "ADMIN" }] }, orderBy: { createdAt: "asc" } });
   if (!actor) return;
   const now = new Date();
   await db.issue.update({

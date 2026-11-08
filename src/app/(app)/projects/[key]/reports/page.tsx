@@ -3,6 +3,7 @@ import { getProjectByKey } from "@/lib/project";
 import { BarList, ColumnChart, LineChart } from "@/components/Charts";
 import { forecastSprint } from "@/lib/forecast";
 import { SprintForecast } from "@/components/SprintForecast";
+import { projectPeople } from "@/lib/permissions";
 
 const DAY = 86400000;
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -34,7 +35,7 @@ export default async function ReportsPage({ params }: { params: Promise<{ key: s
       where: { projectId: project.id, status: { category: { not: "DONE" } } },
       select: { assigneeId: true, dueDate: true, storyPoints: true, status: { select: { category: true } } },
     }),
-    db.user.findMany({ select: { id: true, name: true } }),
+    db.user.findMany({ where: projectPeople(project), select: { id: true, name: true } }),
   ]);
   const [flow, current] = await Promise.all([
     db.issue.findMany({

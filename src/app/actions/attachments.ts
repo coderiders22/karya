@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { issueInWorkspace, requireEditor } from "@/lib/auth";
 import { MAX_UPLOAD_BYTES, deleteStored, isOurBlobUrl, saveFile } from "@/lib/storage";
+import { visibleProjects } from "@/lib/permissions";
 
 async function logUpload(issueId: string, actorId: string, names: string[]) {
   await db.activity.create({ data: { issueId, actorId, field: "attachment", to: names.join(", ") } });
@@ -12,8 +13,8 @@ async function logUpload(issueId: string, actorId: string, names: string[]) {
 
 /** Own server / Docker: the files themselves come through this action and are saved to disk. */
 export async function uploadAttachments(issueId: string, form: FormData): Promise<{ error?: string }> {
-  const user = await requireUser();
-  await db.issue.findUniqueOrThrow({ where: { id: issueId } });
+  const user = await requireEditor();
+  await issueInWorkspace(user, issueId);
   const files = form.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
   const tooBig = files.find((f) => f.size > MAX_UPLOAD_BYTES);
   if (tooBig) return { error: `${tooBig.name} is larger than 25 MB` };
@@ -32,8 +33,8 @@ export async function uploadAttachments(issueId: string, form: FormData): Promis
  * with Blob itself that each URL really is a file in our store, and taking its real size.
  */
 export async function registerAttachments(issueId: string, uploaded: { url: string; filename: string }[]): Promise<{ error?: string }> {
-  const user = await requireUser();
-  await db.issue.findUniqueOrThrow({ where: { id: issueId } });
+  const user = await requireEditor();
+  await issueInWorkspace(user, issueId);
   const { head } = await import("@vercel/blob");
   for (const u of uploaded) {
     if (!isOurBlobUrl(u.url)) return { error: "Upload did not reach file storage" };
@@ -48,8 +49,8 @@ export async function registerAttachments(issueId: string, uploaded: { url: stri
 }
 
 export async function deleteAttachment(id: string) {
-  const user = await requireUser();
-  const a = await db.attachment.findUniqueOrThrow({ where: { id } });
+  const user = await requireEditor();
+  const a = await db.attachment.findFirstOrThrow({ where: { id, issue: { project: visibleProjects(user) } } });
   if (a.uploaderId !== user.id && user.role !== "ADMIN") throw new Error("Only the uploader or an admin can delete this");
   await db.attachment.delete({ where: { id } });
   await deleteStored(a.storageKey);

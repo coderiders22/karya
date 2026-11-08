@@ -2,14 +2,15 @@
 
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { canEdit, canManageProject, projectPeople, visibleProjects } from "@/lib/permissions";
 
 /** Everything the side panel needs for one issue, in a single round trip. */
 export async function getIssuePeek(key: string) {
-  await requireUser();
-  const i = await db.issue.findUnique({
-    where: { key: key.toUpperCase() },
+  const me = await requireUser();
+  const i = await db.issue.findFirst({
+    where: { key: key.toUpperCase(), project: visibleProjects(me) },
     include: {
-      project: { select: { id: true, key: true, name: true, color: true, staleDays: true, statuses: { orderBy: { position: "asc" }, select: { id: true, name: true, category: true } } } },
+      project: { select: { id: true, key: true, name: true, color: true, staleDays: true, leadId: true, workspaceId: true, statuses: { orderBy: { position: "asc" }, select: { id: true, name: true, category: true } } } },
       status: { select: { id: true, name: true, category: true } },
       reporter: { select: { name: true } },
       parent: { select: { key: true, title: true } },
@@ -21,8 +22,9 @@ export async function getIssuePeek(key: string) {
     },
   });
   if (!i) return null;
-  const users = await db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
+  const users = await db.user.findMany({ where: projectPeople(i.project), select: { id: true, name: true }, orderBy: { name: "asc" } });
   return {
+    canEdit: canEdit(me.role), canDelete: canManageProject(me, i.project) || i.reporterId === me.id,
     id: i.id, key: i.key, title: i.title, description: i.description, type: i.type, priority: i.priority,
     status: i.status, statuses: i.project.statuses, assigneeId: i.assigneeId, users,
     storyPoints: i.storyPoints, dueDate: i.dueDate?.toISOString().slice(0, 10) ?? "", labels: i.labels,

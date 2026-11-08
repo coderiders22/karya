@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AtSign, Bell, CircleDot, MessageSquare, UserPlus, Volume2, VolumeX } from "lucide-react";
+import { AtSign, Bell, CircleDot, KeyRound, MessageSquare, UserPlus, Users, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
-import { getNotifications, markNotificationsRead } from "@/app/actions/notifications";
+import { markNotificationsRead } from "@/app/actions/notifications";
+import type { InboxData } from "@/lib/notify";
 import { playChime, setSoundEnabled, soundEnabled, unlockAudioOnInteraction } from "@/lib/chime";
 
-type Data = Awaited<ReturnType<typeof getNotifications>>;
+type Data = InboxData;
 type Item = Data["items"][number];
-const ICON = { ASSIGNED: UserPlus, MENTIONED: AtSign, COMMENTED: MessageSquare, STATUS_CHANGED: CircleDot } as const;
-const TITLE = { ASSIGNED: "Assigned to you", MENTIONED: "You were mentioned", COMMENTED: "New comment", STATUS_CHANGED: "Status changed" } as const;
+const ICON = { ASSIGNED: UserPlus, MENTIONED: AtSign, COMMENTED: MessageSquare, STATUS_CHANGED: CircleDot, TEAM_JOINED: Users, PASSWORD_REQUEST: KeyRound } as const;
+const TITLE = { ASSIGNED: "Assigned to you", MENTIONED: "You were mentioned", COMMENTED: "New comment", STATUS_CHANGED: "Status changed", TEAM_JOINED: "New teammate", PASSWORD_REQUEST: "Password request" } as const;
 
 /** Check for news every 20s, but only while the tab is visible and someone is using it.
  *  Hidden or idle tabs make no requests, so the free database can sleep. */
@@ -42,7 +43,7 @@ export function NotificationBell() {
 
   const openIssue = useCallback((n: Item) => {
     if (!n.read) markNotificationsRead([n.id]).catch(() => {});
-    router.push(`/issues/${n.issueKey}`);
+    router.push(n.href);
   }, [router]);
 
   /** Toast + chime for notifications that arrived while the page was open. */
@@ -91,7 +92,7 @@ export function NotificationBell() {
   }, []);
 
   const load = useCallback(async () => {
-    const d = await getNotifications().catch(() => null);
+    const d: Data | null = await fetch("/api/notifications").then((r) => (r.ok ? r.json() : null)).catch(() => null);
     if (!d) return;
     setData(d);
     const unread = d.items.filter((n) => !n.read);
@@ -187,7 +188,7 @@ export function NotificationBell() {
             {data.items.map((n) => (
               <li key={n.id}>
                 <Link
-                  href={`/issues/${n.issueKey}`}
+                  href={n.href}
                   onClick={() => { setOpen(false); if (!n.read) markNotificationsRead([n.id]).then(load); }}
                   className={`flex gap-3 px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 ${n.read ? "" : "bg-brand/5"}`}
                 >

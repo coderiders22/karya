@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { autoTransition, findIssues, recordDev, verifySignature } from "@/lib/github";
-import { githubWebhookSecret } from "@/lib/githubOAuth";
+import { db } from "@/lib/db";
+import { githubWebhookSecret, openToken } from "@/lib/githubOAuth";
 
 type Commit = { id: string; message: string; url: string; author?: { name?: string; username?: string } };
 
@@ -11,27 +12,38 @@ type Commit = { id: string; message: string; url: string; author?: { name?: stri
  *   Events: Pushes, Pull requests, Branch or tag creation.
  */
 export async function POST(req: Request) {
-  const secret = githubWebhookSecret();
-  if (!secret) return NextResponse.json({ error: "Set AUTH_SECRET (or GITHUB_WEBHOOK_SECRET) on the server to enable the GitHub integration" }, { status: 503 });
   const body = await req.text();
-  if (!verifySignature(body, req.headers.get("x-hub-signature-256"), secret)) {
-    return NextResponse.json({ error: "Bad signature" }, { status: 401 });
-  }
+  const p = (() => { try { return JSON.parse(body); } catch { return null; } })();
+  const repo: string = p?.repository?.full_name ?? "";
+  if (!repo) return NextResponse.json({ error: "Not a repository event" }, { status: 400 });
+
+  // Only projects connected to this repository, and only if GitHub signed with that project's secret.
+  // The signature is what proves the delivery is genuine; the repository name in the body proves nothing.
+  const signature = req.headers.get("x-hub-signature-256");
+  const connected = await db.project.findMany({ where: { githubRepo: { equals: repo, mode: "insensitive" } }, select: { id: true, githubSecret: true } });
+  const shared = githubWebhookSecret();
+  const verified = connected.filter((c) => {
+    const secret = c.githubSecret ? openToken(c.githubSecret) : shared; // older connections used the shared secret
+    return !!secret && verifySignature(body, signature, secret);
+  });
+  if (verified.length === 0) return NextResponse.json({ error: connected.length ? "Bad signature" : "This repository isn't connected to a Karya project" }, { status: connected.length ? 401 : 404 });
+  const projectIds = verified.map((c) => c.id);
+
   const event = req.headers.get("x-github-event");
-  const p = JSON.parse(body);
-  const repo: string = p.repository?.full_name ?? "";
+  // Remember the delivery, so project settings can show the connection is alive.
+  await db.project.updateMany({ where: { id: { in: projectIds } }, data: { githubLastEventAt: new Date(), githubLastEventType: event ?? "unknown" } });
   let linked = 0;
 
   if (event === "ping") return NextResponse.json({ ok: true, message: "Karya is listening" });
 
   if (event === "push") {
     const branch = String(p.ref ?? "").replace("refs/heads/", "");
-    for (const issue of await findIssues(branch)) {
+    for (const issue of await findIssues(projectIds, branch)) {
       await recordDev(issue.id, "BRANCH", `${repo}:${branch}`, { title: branch, url: `${p.repository?.html_url}/tree/${branch}`, repo, author: p.pusher?.name ?? "" });
       linked++;
     }
     for (const c of (p.commits ?? []) as Commit[]) {
-      for (const issue of await findIssues(c.message)) {
+      for (const issue of await findIssues(projectIds, c.message)) {
         await recordDev(issue.id, "COMMIT", c.id, { title: c.message.split("\n")[0].slice(0, 200), url: c.url, repo, author: c.author?.username ?? c.author?.name ?? "" });
         linked++;
       }
@@ -39,7 +51,7 @@ export async function POST(req: Request) {
   }
 
   if (event === "create" && p.ref_type === "branch") {
-    for (const issue of await findIssues(p.ref)) {
+    for (const issue of await findIssues(projectIds, p.ref)) {
       await recordDev(issue.id, "BRANCH", `${repo}:${p.ref}`, { title: p.ref, url: `${p.repository?.html_url}/tree/${p.ref}`, repo, author: p.sender?.login ?? "" });
       linked++;
     }
@@ -48,7 +60,7 @@ export async function POST(req: Request) {
   if (event === "pull_request") {
     const pr = p.pull_request;
     const state = pr.merged ? "merged" : pr.state === "closed" ? "closed" : pr.draft ? "draft" : "open";
-    for (const issue of await findIssues(pr.title, pr.head?.ref, pr.body)) {
+    for (const issue of await findIssues(projectIds, pr.title, pr.head?.ref, pr.body)) {
       await recordDev(issue.id, "PULL_REQUEST", `${repo}#${pr.number}`, { title: pr.title, url: pr.html_url, state, repo, author: pr.user?.login ?? "" });
       linked++;
       if (state === "merged") await autoTransition(issue, "done", `PR #${pr.number} merged`);

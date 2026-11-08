@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LogoLoader } from "./LogoLoader";
 
 /**
@@ -10,20 +10,27 @@ import { LogoLoader } from "./LogoLoader";
  * has hydrated, then fades away. The logo loader loops for as long as loading takes.
  *
  *  - Only on a full page load; client-side navigation never shows it (the layout persists).
- *  - First load of a browser session: held until the card has landed (~1.1s), so the
+ *  - First load of a browser session: held long enough to read the tagline (~1.3s), so the
  *    animation is seen once. Later reloads: hidden as soon as the app is ready.
  *  - Never blocks: a CSS failsafe fades it out after 6s even if JavaScript fails.
  */
 export function SplashScreen() {
   const [phase, setPhase] = useState<"show" | "leaving" | "gone">("show");
+  const firstVisit = useRef<boolean | null>(null);
 
   useEffect(() => {
-    let first = true;
-    try {
-      first = !sessionStorage.getItem("karya:booted");
-      sessionStorage.setItem("karya:booted", "1");
-    } catch {}
-    const wait = first ? Math.max(0, 1100 - performance.now()) : 0;
+    // Kept in a ref because development mode runs this effect twice, and the second run would see "booted".
+    if (firstVisit.current === null) {
+      try {
+        firstVisit.current = !sessionStorage.getItem("karya:booted");
+        sessionStorage.setItem("karya:booted", "1");
+      } catch {
+        firstVisit.current = true;
+      }
+    }
+    // Counted from now, not from page start: after logging in the page has been open for a while,
+    // and the splash would leave before anyone could read the tagline.
+    const wait = firstVisit.current ? 1300 : 0;
     const t1 = setTimeout(() => setPhase("leaving"), wait);
     const t2 = setTimeout(() => setPhase("gone"), wait + 320);
     return () => { clearTimeout(t1); clearTimeout(t2); };
@@ -37,7 +44,10 @@ export function SplashScreen() {
     >
       <div className={`flex flex-col items-center transition-transform duration-300 ease-out-quint ${phase === "leaving" ? "scale-[1.04]" : ""}`}>
         <span className="splash-in"><LogoLoader size={64} label="Opening Karya" /></span>
-        <div className="splash-word mt-4 text-[15px] font-semibold tracking-tight text-slate-900 dark:text-slate-100">Karya</div>
+        <div className="splash-word mt-4 text-center">
+          <div className="text-[17px] font-semibold tracking-tight text-slate-900 dark:text-slate-100">Karya</div>
+          <div className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">Tickets that move themselves.</div>
+        </div>
       </div>
     </div>
   );

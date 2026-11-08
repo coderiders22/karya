@@ -89,7 +89,7 @@ export function AuthCard({ title, subtitle, children, footer, host }: {
         </div>
         <div className="relative flex items-center justify-between px-10 pb-8 text-xs text-slate-500">
           <span>Karya means “work” in Sanskrit.</span>
-          <span>Self-hosted · your data stays with you</span>
+          <span>Tickets that move themselves.</span>
         </div>
       </aside>
 

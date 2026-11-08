@@ -20,10 +20,11 @@ const people = [
   { name: "Rohan Mehta", email: "rohan@karya.test", role: "MEMBER" },
   { name: "Lena Fischer", email: "lena@karya.test", role: "MEMBER" },
 ].map((p) => ({ ...p, password: pw() }));
+const workspace = await db.workspace.create({ data: { name: "Demo team" } });
 const u = {};
 for (const p of people) {
   u[p.name.split(" ")[0].toLowerCase()] = await db.user.create({
-    data: { name: p.name, email: p.email, role: p.role, passwordHash: await bcrypt.hash(p.password, 10), createdAt: ago(40) },
+    data: { name: p.name, email: p.email, role: p.role, siteOwner: p.role === "ADMIN", workspaceId: workspace.id, passwordHash: await bcrypt.hash(p.password, 10), createdAt: ago(40) },
   });
 }
 
@@ -37,7 +38,7 @@ if (process.argv.includes("--team-only")) {
 
 const project = await db.project.create({
   data: {
-    key: "WR", name: "Website Redesign", color: "#0e7c66", leadId: u.aanya.id, description: "New marketing site and sign-up flow.",
+    key: "WR", workspaceId: workspace.id, name: "Website Redesign", color: "#0e7c66", leadId: u.aanya.id, description: "New marketing site and sign-up flow.",
     statuses: { create: [
       { name: "To Do", category: "TODO", position: 0 },
       { name: "In Progress", category: "IN_PROGRESS", position: 1, wipLimit: 4 },

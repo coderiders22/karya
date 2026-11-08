@@ -1,9 +1,10 @@
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { canManageProject, requireUser } from "@/lib/auth";
 import { getProjectByKey } from "@/lib/project";
 import { SORTS, buildIssueWhere, toQueryString, type IssueSearch } from "@/lib/issueQuery";
 import { FilterBar } from "@/components/FilterBar";
 import { IssueNavigator } from "@/components/IssueNavigator";
+import { projectPeople } from "@/lib/permissions";
 
 export default async function IssuesPage({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<IssueSearch> }) {
   const { key } = await params;
@@ -11,7 +12,7 @@ export default async function IssuesPage({ params, searchParams }: { params: Pro
   const me = await requireUser();
   const project = await getProjectByKey(key);
   const [users, sprints, labelRows, issues] = await Promise.all([
-    db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: projectPeople(project), select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.sprint.findMany({ where: { projectId: project.id, state: { not: "CLOSED" } }, select: { id: true, name: true } }),
     db.$queryRaw<{ l: string }[]>`SELECT DISTINCT unnest(labels) AS l FROM "Issue" WHERE "projectId" = ${project.id} ORDER BY l`,
     db.issue.findMany({
@@ -37,7 +38,7 @@ export default async function IssuesPage({ params, searchParams }: { params: Pro
         sprints={sprints.map((s) => ({ value: s.id, label: s.name }))}
         projectId={project.id}
         query={toQueryString(sp)}
-        isAdmin={me.role === "ADMIN"}
+        isAdmin={canManageProject(me, project)}
         showProject={false}
       />
     </main>

@@ -7,10 +7,12 @@ import { searchIssues } from "@/app/actions/issues";
 import { ArrowRight, Search } from "lucide-react";
 import { TypeIcon } from "./IssueBits";
 import { openCreateIssue, type ShellProject } from "./CreateIssueDialog";
+import { useAccess } from "./Access";
 
 type Item = { id: string; label: string; hint?: string; type?: IssueType; run: () => void };
 
 export function CommandPalette({ projects }: { projects: ShellProject[] }) {
+  const { mode } = useAccess();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -57,7 +59,7 @@ export function CommandPalette({ projects }: { projects: ShellProject[] }) {
       { id: "work", label: "Your work", run: go("/your-work") },
       { id: "projects", label: "All projects", run: go("/projects") },
       { id: "filters", label: "Search all issues (filters)", run: go("/filters") },
-      { id: "members", label: "Team members", run: go("/settings/members") },
+      ...(mode === "STUDENT" ? [] : [{ id: "members", label: "Team members", run: go("/settings/members") }]),
       { id: "profile", label: "Profile & password", run: go("/settings/profile") },
       ...projects.flatMap((p) => [
         { id: `b-${p.id}`, label: `${p.name}: Board`, run: go(`/projects/${p.key}/board`) },

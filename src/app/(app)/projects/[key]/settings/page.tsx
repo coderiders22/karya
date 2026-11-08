@@ -5,7 +5,9 @@ import { JIRA_DATE_FORMAT } from "@/lib/jiraCsv";
 import { StatusEditor } from "@/components/StatusEditor";
 import { ProjectDetailsForm } from "@/components/ProjectDetailsForm";
 import { GithubConnect } from "@/components/GithubConnect";
-import { githubOAuthConfigured, githubWebhookSecret, githubWebhookUrl, openToken } from "@/lib/githubOAuth";
+import { githubOAuthConfigured, openToken } from "@/lib/githubOAuth";
+import { templateById } from "@/lib/templates";
+import { canManageProject, projectPeople } from "@/lib/permissions";
 
 export default async function SettingsPage({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { key } = await params;
@@ -14,9 +16,10 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   const project = await getProjectByKey(key);
   const [counts, users, total] = await Promise.all([
     db.issue.groupBy({ by: ["statusId"], where: { projectId: project.id }, _count: true }),
-    db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: projectPeople(project), select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.issue.count({ where: { projectId: project.id } }),
   ]);
+  const canManage = canManageProject(me, project);
   const countBy = Object.fromEntries(counts.map((c) => [c.statusId, c._count]));
   // Only counts as connected if the stored token still opens (AUTH_SECRET unchanged).
   const gh = await db.githubAccount.findUnique({ where: { userId: me.id } });
@@ -58,34 +61,30 @@ export default async function SettingsPage({ params, searchParams }: { params: P
         login={ghLogin}
         status={typeof sp.github === "string" ? sp.github : null}
         automation={project.gitAutomation}
-        manual={
-          <ol className="list-decimal space-y-1 pl-5 text-[13px] text-slate-700 dark:text-slate-300">
-            <li>In your GitHub repository, open <b>Settings → Webhooks → Add webhook</b>.</li>
-            <li>Payload URL: <code className="select-all break-all rounded bg-slate-100 px-1 font-mono text-[12px] dark:bg-slate-800">{githubWebhookUrl()}</code>, content type <code className="font-mono">application/json</code>.</li>
-            <li>
-              Secret:{" "}
-              {me.role === "ADMIN"
-                ? <code className="select-all break-all rounded bg-slate-100 px-1 font-mono text-[12px] dark:bg-slate-800">{githubWebhookSecret()}</code>
-                : <span className="text-muted">ask an admin (it's shown to admins here)</span>}
-            </li>
-            <li>Choose <b>Pushes</b>, <b>Pull requests</b> and <b>Branch or tag creation</b>.</li>
-          </ol>
-        }
+        canManage={canManage}
+        lastEventAt={project.githubLastEventAt?.toISOString() ?? null}
+        lastEventType={project.githubLastEventType}
+        hasHook={!!project.githubHookId}
       />
 
       <section className="card p-5">
         <h2 className="section-title mb-1">Board columns</h2>
         <p className="mb-4 text-sm text-muted">Each column is a status. Its category decides what counts as done. Set a WIP limit to have the board flag a column that is taking on too much.</p>
-        <StatusEditor projectId={project.id} statuses={project.statuses.map((s) => ({ id: s.id, name: s.name, category: s.category, count: countBy[s.id] ?? 0, wipLimit: s.wipLimit }))} />
+        <fieldset disabled={!canManage} className="contents">
+          <StatusEditor projectId={project.id} statuses={project.statuses.map((s) => ({ id: s.id, name: s.name, category: s.category, count: countBy[s.id] ?? 0, wipLimit: s.wipLimit }))} />
+        </fieldset>
       </section>
 
       <section className="card p-5">
         <h2 className="section-title mb-4">Project</h2>
-        <ProjectDetailsForm
-          project={{ id: project.id, name: project.name, description: project.description, leadId: project.leadId, color: project.color, staleDays: project.staleDays, gitAutomation: project.gitAutomation }}
-          users={users}
-          isAdmin={me.role === "ADMIN"}
-        />
+        <fieldset disabled={!canManage} className="contents">
+          <ProjectDetailsForm
+            project={{ id: project.id, name: project.name, description: project.description, leadId: project.leadId, color: project.color, staleDays: project.staleDays, gitAutomation: project.gitAutomation, dueAt: project.dueAt?.toISOString() ?? null }}
+            users={users}
+            isAdmin={me.role === "ADMIN" && project.workspaceId === me.workspaceId}
+            deadlineLabel={me.mode === "STUDENT" ? templateById(project.template)?.deadlineLabel ?? "Deadline" : undefined}
+          />
+        </fieldset>
       </section>
     </main>
   );

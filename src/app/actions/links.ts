@@ -2,14 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { issueInWorkspace, requireEditor } from "@/lib/auth";
 import { LINK_RELATIONS } from "@/lib/links";
+import { visibleProjects } from "@/lib/permissions";
 
 export async function addLink(issueId: string, relation: string, targetKey: string): Promise<{ error?: string }> {
-  const user = await requireUser();
+  const user = await requireEditor();
+  await issueInWorkspace(user, issueId);
   const rel = LINK_RELATIONS[relation as keyof typeof LINK_RELATIONS];
   if (!rel) return { error: "Pick a link type" };
-  const target = await db.issue.findUnique({ where: { key: targetKey.trim().toUpperCase() } });
+  const target = await db.issue.findFirst({ where: { key: targetKey.trim().toUpperCase(), project: visibleProjects(user) } });
   if (!target) return { error: `No issue ${targetKey.trim().toUpperCase()}` };
   if (target.id === issueId) return { error: "An issue can't link to itself" };
   const [fromId, toId] = rel.outward ? [issueId, target.id] : [target.id, issueId];
@@ -24,7 +26,7 @@ export async function addLink(issueId: string, relation: string, targetKey: stri
 }
 
 export async function removeLink(linkId: string) {
-  await requireUser();
-  await db.issueLink.delete({ where: { id: linkId } });
+  const user = await requireEditor();
+  await db.issueLink.deleteMany({ where: { id: linkId, from: { project: visibleProjects(user) } } });
   revalidatePath("/", "layout");
 }

@@ -1,28 +1,29 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { canManageAll, requireUser } from "@/lib/auth";
 import { SORTS, buildIssueWhere, toQueryString, type IssueSearch } from "@/lib/issueQuery";
 import { FilterBar } from "@/components/FilterBar";
 import { IssueNavigator } from "@/components/IssueNavigator";
 import { DeleteFilterButton } from "@/components/DeleteFilterButton";
 import { PageHeader } from "@/components/PageHeader";
+import { visibleProjects, peopleIWorkWith } from "@/lib/permissions";
 
 export default async function FiltersPage({ searchParams }: { searchParams: Promise<IssueSearch> }) {
   const sp = await searchParams;
   const me = await requireUser();
   const [users, projects, statuses, labelRows, issues, saved] = await Promise.all([
-    db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    db.project.findMany({ select: { id: true, key: true, name: true }, orderBy: { name: "asc" } }),
-    db.status.findMany({ select: { name: true }, distinct: ["name"], orderBy: { name: "asc" } }),
-    db.$queryRaw<{ l: string }[]>`SELECT DISTINCT unnest(labels) AS l FROM "Issue" ORDER BY l`,
+    db.user.findMany({ where: peopleIWorkWith(me), select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.project.findMany({ where: visibleProjects(me), select: { id: true, key: true, name: true }, orderBy: { name: "asc" } }),
+    db.status.findMany({ where: { project: visibleProjects(me) }, select: { name: true }, distinct: ["name"], orderBy: { name: "asc" } }),
+    db.$queryRaw<{ l: string }[]>`SELECT DISTINCT unnest(labels) AS l FROM "Issue" WHERE "projectId" IN (SELECT id FROM "Project" WHERE "workspaceId" = ${me.workspaceId}) ORDER BY l`,
     db.issue.findMany({
-      where: buildIssueWhere(sp, me.id),
+      where: { AND: [buildIssueWhere(sp, me.id), { project: visibleProjects(me) }] },
       include: { status: true, assignee: { select: { name: true } }, project: { select: { key: true, name: true } } },
       orderBy: SORTS[sp.sort ?? "updated"] ?? SORTS.updated,
       take: 500,
     }),
     db.savedFilter.findMany({
-      where: { OR: [{ ownerId: me.id }, { shared: true }] },
+      where: { OR: [{ ownerId: me.id }, { shared: true, owner: { workspaceId: me.workspaceId } }] },
       include: { owner: { select: { name: true } } },
       orderBy: { name: "asc" },
     }),
@@ -58,7 +59,7 @@ export default async function FiltersPage({ searchParams }: { searchParams: Prom
         sprints={[]}
         projectId={null}
         query={toQueryString(sp)}
-        isAdmin={me.role === "ADMIN"}
+        isAdmin={canManageAll(me.role)}
         showProject
       />
       </div>

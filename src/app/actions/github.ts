@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { GithubError, gh, githubWebhookSecret, githubWebhookUrl, openToken } from "@/lib/githubOAuth";
+import { randomBytes } from "crypto";
+import { requireEditor, requireProjectManager, requireUser } from "@/lib/auth";
+import { GithubError, gh, githubWebhookUrl, openToken, sealToken } from "@/lib/githubOAuth";
 
 type Repo = { full_name: string; private: boolean; pushed_at: string | null; permissions?: { admin?: boolean } };
 type Hook = { id: number; config: { url?: string } };
@@ -24,7 +25,7 @@ async function dropToken(userId: string) {
 
 /** Repositories the person can add a webhook to (they need admin rights on it). */
 export async function listGithubRepos(): Promise<{ repos?: { name: string; private: boolean; pushedAt: string | null }[]; error?: string; reconnect?: boolean }> {
-  const me = await requireUser();
+  const me = await requireEditor();
   const t = await tokenFor(me.id);
   if (!t) return { reconnect: true, error: "Connect your GitHub account first." };
   try {
@@ -43,12 +44,12 @@ export async function listGithubRepos(): Promise<{ repos?: { name: string; priva
 
 /** Adds Karya's webhook to the repository (or updates it if one already points here) and links it to the project. */
 export async function connectGithubRepo(projectId: string, repo: string): Promise<{ error?: string }> {
-  const me = await requireUser();
+  const { user: me } = await requireProjectManager(projectId);
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return { error: "Pick a repository from the list" };
   const t = await tokenFor(me.id);
   if (!t) return { error: "Connect your GitHub account first." };
-  const secret = githubWebhookSecret();
-  if (!secret) return { error: "The server needs AUTH_SECRET set before GitHub can be connected." };
+  // Each project gets its own secret, so no other workspace can forge deliveries for it.
+  const secret = randomBytes(32).toString("hex");
   const config = { url: githubWebhookUrl(), content_type: "json", secret, insecure_ssl: "0" };
   try {
     const hooks = await gh<Hook[]>(t.token, `/repos/${repo}/hooks?per_page=100`);
@@ -56,7 +57,7 @@ export async function connectGithubRepo(projectId: string, repo: string): Promis
     const hook = existing
       ? await gh<Hook>(t.token, `/repos/${repo}/hooks/${existing.id}`, { method: "PATCH", body: { active: true, events: EVENTS, config } })
       : await gh<Hook>(t.token, `/repos/${repo}/hooks`, { method: "POST", body: { name: "web", active: true, events: EVENTS, config } });
-    await db.project.update({ where: { id: projectId }, data: { githubRepo: repo, githubHookId: String(hook.id) } });
+    await db.project.update({ where: { id: projectId }, data: { githubRepo: repo, githubHookId: String(hook.id), githubSecret: sealToken(secret), githubLastEventAt: null, githubLastEventType: null } });
     revalidatePath("/", "layout");
     return {};
   } catch (e) {
@@ -69,10 +70,50 @@ export async function connectGithubRepo(projectId: string, repo: string): Promis
   }
 }
 
+/**
+ * "Is this actually working?" Asks GitHub to send a test delivery, then reads back what GitHub
+ * recorded for the webhook. Anyone who can run the project can check, as long as they've
+ * authorised GitHub themselves; otherwise it reports only what Karya has seen.
+ */
+export async function checkGithubConnection(projectId: string): Promise<{ state: "ok" | "failing" | "unknown"; message: string }> {
+  const { user: me, project } = await requireProjectManager(projectId);
+  if (!project.githubRepo || !project.githubHookId) return { state: "unknown", message: "No repository is connected." };
+  const t = await tokenFor(me.id);
+  if (!t) return { state: "unknown", message: "Connect your own GitHub account to run a test." };
+  const path = `/repos/${project.githubRepo}/hooks/${project.githubHookId}`;
+  try {
+    await gh(t.token, `${path}/pings`, { method: "POST" });
+    await new Promise((r) => setTimeout(r, 2500)); // give GitHub a moment to deliver it
+    const hook = await gh<{ active: boolean; last_response?: { code: number | null; status: string; message: string | null } }>(t.token, path);
+    const fresh = await db.project.findUniqueOrThrow({ where: { id: projectId }, select: { githubLastEventAt: true } });
+    revalidatePath("/", "layout");
+    if (fresh.githubLastEventAt && Date.now() - fresh.githubLastEventAt.getTime() < 15000) return { state: "ok", message: "Working. GitHub reached Karya just now." };
+    const code = hook.last_response?.code;
+    if (code && code >= 200 && code < 300) return { state: "ok", message: "Working. GitHub reports a successful delivery." };
+    if (code === 401) return { state: "failing", message: "GitHub reached Karya, but the secret didn't match. Disconnect and connect the repository again." };
+    if (code) return { state: "failing", message: `GitHub reached Karya but got an error (${code}). Check the repository's Settings → Webhooks → Recent Deliveries.` };
+    return { state: "failing", message: `GitHub couldn't reach ${githubWebhookUrl()}. Karya must be on a public address.` };
+  } catch (e) {
+    if (e instanceof GithubError && e.status === 404) return { state: "failing", message: "The webhook is gone from the repository. Disconnect and connect it again." };
+    if (e instanceof GithubError && (e.status === 401 || e.status === 403)) return { state: "unknown", message: "Your GitHub account can't test this repository. Someone with admin rights on it can." };
+    return { state: "unknown", message: "Couldn't reach GitHub to run the test. Try again." };
+  }
+}
+
+/** No OAuth app on this server: link a repository by hand, with a secret made for this project. */
+export async function linkRepoByHand(projectId: string, repo: string): Promise<{ error?: string; secret?: string; url?: string }> {
+  await requireProjectManager(projectId);
+  const name = repo.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
+  if (!/^[\w.-]+\/[\w.-]+$/.test(name)) return { error: "Enter the repository as owner/name" };
+  const secret = randomBytes(32).toString("hex");
+  await db.project.update({ where: { id: projectId }, data: { githubRepo: name, githubHookId: null, githubSecret: sealToken(secret), githubLastEventAt: null, githubLastEventType: null } });
+  revalidatePath("/", "layout");
+  return { secret, url: githubWebhookUrl() };
+}
+
 /** Removes Karya's webhook from the repository (when it can) and unlinks the project. */
 export async function disconnectGithubRepo(projectId: string): Promise<{ warning?: string }> {
-  const me = await requireUser();
-  const project = await db.project.findUniqueOrThrow({ where: { id: projectId }, select: { githubRepo: true, githubHookId: true } });
+  const { user: me, project } = await requireProjectManager(projectId);
   let warning: string | undefined;
   if (project.githubRepo && project.githubHookId) {
     const t = await tokenFor(me.id);
@@ -85,7 +126,7 @@ export async function disconnectGithubRepo(projectId: string): Promise<{ warning
       }
     }
   }
-  await db.project.update({ where: { id: projectId }, data: { githubRepo: null, githubHookId: null } });
+  await db.project.update({ where: { id: projectId }, data: { githubRepo: null, githubHookId: null, githubSecret: null, githubLastEventAt: null, githubLastEventType: null } });
   revalidatePath("/", "layout");
   return { warning };
 }

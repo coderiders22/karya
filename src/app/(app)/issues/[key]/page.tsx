@@ -4,6 +4,7 @@ import { ChevronRight, Hourglass } from "lucide-react";
 import { db } from "@/lib/db";
 import { usesBlob } from "@/lib/storage";
 import { requireUser } from "@/lib/auth";
+import { canEdit, canManageProject, projectPeople, visibleProjects } from "@/lib/permissions";
 import { describeLink } from "@/lib/links";
 import { Avatar, IssueKey, PriorityIcon, StatusPill, TypeIcon } from "@/components/IssueBits";
 import { Markdown } from "@/components/Markdown";
@@ -37,8 +38,8 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
 export default async function IssuePage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
   const me = await requireUser();
-  const issue = await db.issue.findUnique({
-    where: { key: key.toUpperCase() },
+  const issue = await db.issue.findFirst({
+    where: { key: key.toUpperCase(), project: visibleProjects(me) },
     include: {
       project: { include: { statuses: { orderBy: { position: "asc" } } } },
       status: true,
@@ -57,7 +58,7 @@ export default async function IssuePage({ params }: { params: Promise<{ key: str
   });
   if (!issue) notFound();
   const [users, sprints, parents] = await Promise.all([
-    db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: projectPeople(issue.project), select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.sprint.findMany({ where: { projectId: issue.projectId, state: { not: "CLOSED" } }, select: { id: true, name: true } }),
     db.issue.findMany({
       where: { projectId: issue.projectId, id: { not: issue.id }, type: issue.type === "SUBTASK" ? { not: "SUBTASK" } : "EPIC" },
@@ -82,7 +83,7 @@ export default async function IssuePage({ params }: { params: Promise<{ key: str
 
   return (
     <div>
-      <IssueHotkeys issueId={issue.id} meId={me.id} />
+      {canEdit(me.role) && <IssueHotkeys issueId={issue.id} meId={me.id} />}
       <header className="flex h-12 min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap border-b border-slate-200 px-4 text-[13px] sm:px-6 dark:border-slate-800">
         <ProjectBadge p={issue.project} size={18} />
         <Link href={`/projects/${issue.project.key}/board`} className="hidden truncate text-slate-500 hover:text-slate-900 sm:inline dark:hover:text-white">{issue.project.name}</Link>
@@ -100,6 +101,7 @@ export default async function IssuePage({ params }: { params: Promise<{ key: str
         <CopyLink issueKey={issue.key} />
       </header>
 
+      <fieldset disabled={!canEdit(me.role)} className="contents">
       <div className="grid grid-cols-[minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <main className="mx-auto w-full min-w-0 max-w-[920px] space-y-8 px-4 py-5 sm:px-6 sm:py-6 xl:px-10">
           <div>
@@ -251,9 +253,10 @@ export default async function IssuePage({ params }: { params: Promise<{ key: str
             <div>Updated {ago(issue.updatedAt)}</div>
             {issue.resolvedAt && <div>Resolved {issue.resolvedAt.toLocaleString()}</div>}
           </div>
-          <DeleteIssueButton issueId={issue.id} issueKey={issue.key} projectKey={issue.project.key} />
+          {(canManageProject(me, issue.project) || issue.reporterId === me.id) && <DeleteIssueButton issueId={issue.id} issueKey={issue.key} projectKey={issue.project.key} />}
         </aside>
       </div>
+      </fieldset>
     </div>
   );
 }

@@ -4,32 +4,31 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { loadCards } from "@/lib/cards";
 import type { CardIssue } from "@/lib/types";
-import { Avatar, EmptyState, IssueKey, PriorityIcon, StatusPill, TypeIcon } from "@/components/IssueBits";
+import { EmptyState, IssueKey, PriorityIcon, StatusPill, TypeIcon } from "@/components/IssueBits";
 import { PageHeader } from "@/components/PageHeader";
 import { ProjectBadge } from "@/components/Sidebar";
 import { SetupChecklist, type SetupStep } from "@/components/SetupChecklist";
+import { visibleProjects } from "@/lib/permissions";
+import { TodayDate } from "@/components/LocalTime";
+import { ActivityFeed, GithubStatus } from "./parts";
+import { StudentToday } from "./StudentToday";
 
 export const metadata = { title: "Your work" };
 
 const DAY = 86400000;
-const VERB: Record<string, string> = {
-  title: "renamed", description: "edited", type: "changed the type of", statusId: "moved",
-  priority: "reprioritised", assigneeId: "reassigned", storyPoints: "re-estimated", dueDate: "rescheduled",
-  startDate: "rescheduled", labels: "relabelled", parentId: "moved", sprintId: "re-planned", created: "created",
-  attachment: "attached files to", link: "linked",
-};
-
 export default async function YourWork() {
   const me = await requireUser();
+  if (me.mode === "STUDENT") return <StudentToday me={me} />;
   const weekAgo = new Date(Date.now() - 7 * DAY);
   const [mine, projects, activity, doneThisWeek] = await Promise.all([
     loadCards({ assigneeId: me.id, status: { category: { not: "DONE" } }, type: { not: "EPIC" } }),
     db.project.findMany({
+      where: visibleProjects(me),
       orderBy: { name: "asc" },
-      select: { id: true, key: true, name: true, color: true, staleDays: true, _count: { select: { issues: { where: { status: { category: { not: "DONE" } } } } } } },
+      select: { id: true, key: true, name: true, color: true, staleDays: true, leadId: true, workspaceId: true, githubRepo: true, githubLastEventAt: true, githubLastEventType: true, _count: { select: { issues: { where: { status: { category: { not: "DONE" } } } } } } },
     }),
     db.activity.findMany({
-      where: { actorId: { not: me.id } },
+      where: { actorId: { not: me.id }, issue: { project: visibleProjects(me) } },
       orderBy: { createdAt: "desc" },
       take: 15,
       include: { actor: { select: { name: true } }, issue: { select: { key: true, title: true, type: true } } },
@@ -39,17 +38,18 @@ export default async function YourWork() {
 
   let setup: SetupStep[] | null = null;
   if (me.role === "ADMIN") {
-    const [people, invites, issues, sprints, git] = await Promise.all([
-      db.user.count(), db.invite.count(), db.issue.count(),
-      db.sprint.count({ where: { state: { in: ["ACTIVE", "CLOSED"] } } }), db.devActivity.count(),
+    const inWorkspace = { project: visibleProjects(me) };
+    const [people, invites, issues, sprints] = await Promise.all([
+      db.user.count({ where: { workspaceId: me.workspaceId } }), db.invite.count({ where: { workspaceId: me.workspaceId } }), db.issue.count({ where: inWorkspace }),
+      db.sprint.count({ where: { ...inWorkspace, state: { in: ["ACTIVE", "CLOSED"] } } }),
     ]);
     const first = projects[0]?.key;
     setup = [
       { id: "project", title: "Create a project", detail: "Each team or product gets its own board, backlog and issue keys.", href: "/projects", cta: "Create", done: projects.length > 0 },
-      { id: "invite", title: "Invite your team", detail: "Send an invite link. Accounts are invite-only.", href: "/settings/members", cta: "Invite", done: people > 1 || invites > 0 },
+      { id: "invite", title: "Invite your team", detail: "Send an invite link and choose what each person can do.", href: "/settings/members", cta: "Invite", done: people > 1 || invites > 0 },
       { id: "issues", title: "Add your first five issues", detail: "Press C anywhere, or import a Jira CSV.", href: first ? `/projects/${first}/backlog` : "/projects", cta: "Add issues", done: issues >= 5 },
       { id: "sprint", title: "Start a sprint", detail: "Unlocks the forecast, burndown and standup.", href: first ? `/projects/${first}/backlog` : "/projects", cta: "Plan", done: sprints > 0 },
-      { id: "github", title: "Connect GitHub", detail: "Pull requests then move issues on their own.", href: first ? `/projects/${first}/settings` : "/projects", cta: "Connect", done: git > 0 },
+      { id: "github", title: "Connect GitHub", detail: "Pull requests then move issues on their own.", href: first ? `/projects/${first}/settings` : "/projects", cta: "Connect", done: projects.some((p) => p.githubRepo) },
     ];
   }
 
@@ -67,7 +67,7 @@ export default async function YourWork() {
     <main>
       <PageHeader
         title="Your work"
-        description={new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+        description={<TodayDate />}
         actions={
           <div className="flex items-center gap-5 text-[13px]">
             <Metric n={mine.length} label="open" />
@@ -104,6 +104,7 @@ export default async function YourWork() {
         </div>
 
         <aside className="space-y-7">
+          <GithubStatus projects={projects} me={me} />
           <section>
             <h2 className="section-title mb-2">Projects</h2>
             <div className="card divide-y divide-slate-100 dark:divide-slate-800">
@@ -117,26 +118,7 @@ export default async function YourWork() {
               {projects.length === 0 && <p className="p-3 text-xs text-muted"><Link href="/projects" className="underline">Create a project</Link> to get started.</p>}
             </div>
           </section>
-          <section>
-            <h2 className="section-title mb-2">From your team</h2>
-            {activity.length === 0 ? (
-              <p className="text-xs text-muted">Teammates&apos; updates will appear here.</p>
-            ) : (
-              <ul className="space-y-3">
-                {activity.map((a) => (
-                  <li key={a.id} className="flex gap-2.5 text-[13px]">
-                    <Avatar name={a.actor.name} size={5} />
-                    <div className="min-w-0 leading-snug">
-                      <span className="font-medium">{a.actor.name.split(" ")[0]}</span>{" "}
-                      <span className="text-muted">{VERB[a.field] ?? "updated"}</span>{" "}
-                      <Link href={`/issues/${a.issue.key}`} className="hover:underline">{a.issue.title}</Link>
-                      {a.field === "statusId" && a.to && <span className="text-muted"> → {a.to}</span>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <ActivityFeed items={activity} />
         </aside>
       </div>
     </main>

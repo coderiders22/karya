@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { getProjectByKey } from "@/lib/project";
 import { loadCards } from "@/lib/cards";
 import { StandupView, type PersonUpdate } from "@/components/StandupView";
+import { projectPeople } from "@/lib/permissions";
 
 /** Start of the previous working day (Friday when today is Monday). */
 function lastWorkday(now = new Date()) {
@@ -19,7 +20,7 @@ export default async function StandupPage({ params }: { params: Promise<{ key: s
   const [open, done, users, comments] = await Promise.all([
     loadCards({ projectId: project.id, type: { not: "EPIC" }, status: { category: { not: "DONE" } } }),
     loadCards({ projectId: project.id, type: { not: "EPIC" }, resolvedAt: { gte: since } }),
-    db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: projectPeople(project), select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.comment.groupBy({ by: ["authorId"], where: { createdAt: { gte: since }, issue: { projectId: project.id } }, _count: true }),
   ]);
   const commentsBy = Object.fromEntries(comments.map((c) => [c.authorId, c._count]));

@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { IssueType, Priority } from "@prisma/client";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { issueInWorkspace, personOnProject, projectInWorkspace, requireEditor, requireUser } from "@/lib/auth";
+import { canManageProject, visibleProjects } from "@/lib/permissions";
 import { ISSUE_TYPES, PRIORITIES } from "@/lib/constants";
 import { findMentions, notify, watch, watcherIds } from "@/lib/notify";
 
@@ -28,10 +29,15 @@ const createSchema = z.object({
 export type CreateIssueResult = { error?: string; key?: string };
 
 export async function createIssue(form: FormData): Promise<CreateIssueResult> {
-  const user = await requireUser();
+  const user = await requireEditor();
   const parsed = createSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
+  // Everything the form points at has to be in this person's workspace and this project.
+  await projectInWorkspace(user, d.projectId);
+  if (d.assigneeId) await personOnProject(d.projectId, d.assigneeId);
+  if (d.parentId && !(await db.issue.count({ where: { id: d.parentId, projectId: d.projectId } }))) return { error: "Parent issue not found" };
+  if (d.sprintId && !(await db.sprint.count({ where: { id: d.sprintId, projectId: d.projectId } }))) return { error: "Sprint not found" };
   if (!d.parentId && d.parentKey?.trim()) {
     const parent = await db.issue.findFirst({
       where: { key: d.parentKey.trim().toUpperCase(), projectId: d.projectId },
@@ -79,7 +85,7 @@ export async function createIssue(form: FormData): Promise<CreateIssueResult> {
   });
   await notify({ actorId: user.id, issueId: issue.id, kind: "ASSIGNED", userIds: [issue.assigneeId],
     message: `${user.name} assigned ${issue.key} to you: ${issue.title}` });
-  const mentioned = await findMentions(issue.description);
+  const mentioned = await findMentions(issue.description, issue.projectId);
   await notify({ actorId: user.id, issueId: issue.id, kind: "MENTIONED", userIds: mentioned,
     message: `${user.name} mentioned you in ${issue.key}: ${issue.title}` });
   revalidatePath("/", "layout");
@@ -106,9 +112,9 @@ type Field =
 
 /** Updates one field and records the change in the issue's history. */
 export async function updateIssueField(issueId: string, field: Field, raw: string) {
-  const user = await requireUser();
-  const issue = await db.issue.findUniqueOrThrow({
-    where: { id: issueId },
+  const user = await requireEditor();
+  const issue = await db.issue.findFirstOrThrow({
+    where: { id: issueId, project: visibleProjects(user) },
     include: { status: true, assignee: true, sprint: true, parent: true },
   });
 
@@ -149,7 +155,7 @@ export async function updateIssueField(issueId: string, field: Field, raw: strin
       break;
     }
     case "assigneeId": {
-      const assignee = value ? await db.user.findUniqueOrThrow({ where: { id: value } }) : null;
+      const assignee = value ? await personOnProject(issue.projectId, value) : null;
       data = { assigneeId: assignee?.id ?? null };
       [from, to] = [issue.assignee?.name ?? "Unassigned", assignee?.name ?? "Unassigned"];
       break;
@@ -205,8 +211,8 @@ export async function updateIssueField(issueId: string, field: Field, raw: strin
       message: `${user.name} moved ${issue.key} from ${from} to ${to}` });
   }
   if (field === "description") {
-    const before = new Set(await findMentions(issue.description));
-    const now = (await findMentions(raw)).filter((id) => !before.has(id));
+    const before = new Set(await findMentions(issue.description, issue.projectId));
+    const now = (await findMentions(raw, issue.projectId)).filter((id) => !before.has(id));
     await notify({ actorId: user.id, issueId, kind: "MENTIONED", userIds: now,
       message: `${user.name} mentioned you in ${issue.key}: ${issue.title}` });
   }
@@ -215,8 +221,8 @@ export async function updateIssueField(issueId: string, field: Field, raw: strin
 
 /** Board drag & drop: set the issue's status and re-rank the target column. */
 export async function moveIssueOnBoard(issueId: string, statusId: string, orderedIds: string[]) {
-  const user = await requireUser();
-  const issue = await db.issue.findUniqueOrThrow({ where: { id: issueId }, include: { status: true } });
+  const user = await requireEditor();
+  const issue = await db.issue.findFirstOrThrow({ where: { id: issueId, project: visibleProjects(user) }, include: { status: true } });
   const status = await db.status.findFirstOrThrow({ where: { id: statusId, projectId: issue.projectId } });
   const ranks = await db.issue.findMany({
     where: { id: { in: orderedIds }, projectId: issue.projectId },
@@ -250,19 +256,22 @@ export async function moveIssueOnBoard(issueId: string, statusId: string, ordere
 }
 
 export async function deleteIssue(issueId: string) {
-  await requireUser();
+  const user = await requireEditor();
+  const issue = await issueInWorkspace(user, issueId);
+  const project = await projectInWorkspace(user, issue.projectId);
+  if (!canManageProject(user, project) && issue.reporterId !== user.id) throw new Error("Only the project's lead, a manager or the person who created it can delete this issue.");
   await db.issue.delete({ where: { id: issueId } });
   revalidatePath("/", "layout");
 }
 
 export async function addComment(issueId: string, body: string) {
-  const user = await requireUser();
+  const user = await requireEditor();
   if (!body.trim()) return;
   const text = body.trim().replace(/\r\n?/g, "\n");
-  const issue = await db.issue.findUniqueOrThrow({ where: { id: issueId }, select: { key: true, title: true } });
+  const issue = await issueInWorkspace(user, issueId);
   await db.comment.create({ data: { issueId, authorId: user.id, body: text } });
   await watch(issueId, user.id);
-  const mentioned = await findMentions(text);
+  const mentioned = await findMentions(text, issue.projectId);
   await notify({ actorId: user.id, issueId, kind: "MENTIONED", userIds: mentioned,
     message: `${user.name} mentioned you on ${issue.key}: ${issue.title}` });
   const others = (await watcherIds(issueId)).filter((id) => id && !mentioned.includes(id));
@@ -273,7 +282,7 @@ export async function addComment(issueId: string, body: string) {
 
 export async function deleteComment(commentId: string) {
   const user = await requireUser();
-  const c = await db.comment.findUniqueOrThrow({ where: { id: commentId } });
+  const c = await db.comment.findFirstOrThrow({ where: { id: commentId, issue: { project: visibleProjects(user) } } });
   if (c.authorId !== user.id && user.role !== "ADMIN") throw new Error("You can only delete your own comments");
   await db.comment.delete({ where: { id: commentId } });
   revalidatePath("/", "layout");
@@ -281,10 +290,11 @@ export async function deleteComment(commentId: string) {
 
 /** Used by the ⌘K palette and parent pickers. */
 export async function searchIssues(q: string, projectId?: string) {
-  await requireUser();
+  const user = await requireUser();
   const query = q.trim();
   return db.issue.findMany({
     where: {
+      project: visibleProjects(user),
       ...(projectId && { projectId }),
       ...(query && {
         OR: [
@@ -301,6 +311,7 @@ export async function searchIssues(q: string, projectId?: string) {
 
 export async function toggleWatch(issueId: string) {
   const user = await requireUser();
+  await issueInWorkspace(user, issueId);
   const watching = await db.issue.count({ where: { id: issueId, watchers: { some: { id: user.id } } } });
   await db.issue.update({
     where: { id: issueId },

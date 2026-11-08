@@ -4,6 +4,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { UserMode } from "@prisma/client";
+import { useAccess } from "./Access";
 import { isDialogOpen } from "./Dialog";
 
 /**
@@ -25,7 +27,23 @@ const Code = ({ children }: { children: React.ReactNode }) => (
   <code className="rounded bg-slate-100 px-1 py-px font-mono text-[12px] text-slate-800 dark:bg-slate-800 dark:text-slate-200">{children}</code>
 );
 
-function steps(id: TourId, name: string): Step[] {
+function steps(id: TourId, name: string, mode: UserMode): Step[] {
+  const welcome: Step = {
+    title: `Welcome to Karya, ${name.split(" ")[0]}`,
+    body: <>A one-minute look at where everything is. Use <K>→</K> and <K>←</K> to move, <K>Esc</K> to stop. You can replay this any time from <b>Guide</b>.</>,
+  };
+  const finish: Step[] = [
+    { target: "guide", title: "Guide and videos", body: <>Every feature explained step by step. Open it whenever you're unsure how something works.</> },
+    { target: "user-menu", title: "Your menu", body: <>Profile and password, light or dark theme, and this tour again.</> },
+  ];
+  if (id === "welcome" && mode === "STUDENT") return [
+    welcome,
+    { target: "your-work", title: "Today", body: <>Every project deadline with a countdown, then your tasks across all projects, soonest first. A good page to open every day.</> },
+    { target: "projects", title: "Projects", body: <>Start a major project, minor project or hackathon from a template, with the usual steps laid out for you. Share its link and your team joins, even from other colleges.</> },
+    { target: "create", title: "Add a task", body: <>Press <K>C</K> anywhere. While typing, <K>@</K> suggests teammates, <K>!</K> priority and <K>#</K> labels.</> },
+    { target: "inbox", title: "Your inbox", body: <>When a teammate assigns you work, mentions you or joins your team, it lands here with a soft chime.</> },
+    ...finish,
+  ];
   if (id === "welcome") return [
     {
       title: `Welcome to Karya, ${name.split(" ")[0]}`,
@@ -61,7 +79,7 @@ function steps(id: TourId, name: string): Step[] {
     },
     {
       target: "team", title: "Your team",
-      body: <>Admins invite people with a link and choose <b>Admin</b> or <b>Member</b>. There is no public sign-up, so only people you invite can get in.</>,
+      body: <>Admins invite people with a link and choose what they can do: <b>Viewer</b>, <b>Member</b>, <b>Manager</b> or <b>Admin</b>. This workspace is private to the people you invite.</>,
     },
     {
       target: "guide", title: "Guide and videos",
@@ -127,6 +145,7 @@ function findTarget(name?: string) {
 }
 
 export function TourHost({ userName }: { userName: string }) {
+  const { mode } = useAccess();
   const path = usePathname();
   const [tour, setTour] = useState<TourId | null>(null);
   const [list, setList] = useState<Step[]>([]);
@@ -137,7 +156,7 @@ export function TourHost({ userName }: { userName: string }) {
   const begin = useCallback((id: TourId) => {
     if (isDialogOpen()) return;
     // Keep only steps whose element exists right now (or that need no element).
-    const usable = steps(id, userName).filter((s) => !s.target || findTarget(s.target));
+    const usable = steps(id, userName, mode).filter((s) => !s.target || findTarget(s.target));
     if (!usable.length) return;
     setList(usable);
     setI(0);

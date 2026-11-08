@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { StatusCategory } from "@prisma/client";
 import { db } from "@/lib/db";
-import { requireAdmin, requireUser } from "@/lib/auth";
+import { ownProject, projectInWorkspace, requireAdmin, requireEditor, requireProjectManager } from "@/lib/auth";
+import { projectPeople } from "@/lib/permissions";
 import { DEFAULT_STATUSES, PROJECT_COLORS } from "@/lib/constants";
 import type { FormState } from "./auth";
 
@@ -20,17 +21,19 @@ const projectSchema = z.object({
 });
 
 export async function createProject(_: FormState, form: FormData): Promise<FormState> {
-  const user = await requireUser();
+  const user = await requireEditor();
+  if (user.mode === "STUDENT") return { error: "Start a project from a template instead" };
   const parsed = projectSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  if (await db.project.findUnique({ where: { key: parsed.data.key } })) {
+  if (await db.project.findFirst({ where: { workspaceId: user.workspaceId, key: parsed.data.key } })) {
     return { error: `A project with key ${parsed.data.key} already exists` };
   }
   await db.project.create({
     data: {
       ...parsed.data,
+      workspaceId: user.workspaceId,
       leadId: user.id,
-      color: PROJECT_COLORS[(await db.project.count()) % PROJECT_COLORS.length],
+      color: PROJECT_COLORS[(await db.project.count({ where: { workspaceId: user.workspaceId } })) % PROJECT_COLORS.length],
       statuses: { create: DEFAULT_STATUSES.map((s, i) => ({ ...s, position: i })) },
     },
   });
@@ -39,7 +42,7 @@ export async function createProject(_: FormState, form: FormData): Promise<FormS
 }
 
 export async function updateProject(projectId: string, form: FormData) {
-  await requireUser();
+  const { project } = await requireProjectManager(projectId);
   const name = String(form.get("name") ?? "").trim();
   const description = String(form.get("description") ?? "").trim();
   const leadId = String(form.get("leadId") ?? "") || null;
@@ -47,22 +50,27 @@ export async function updateProject(projectId: string, form: FormData) {
   const staleDays = Math.min(60, Math.max(1, Number(form.get("staleDays")) || 3));
   const gitAutomation = form.get("gitAutomation") === "on";
   if (!name) return;
+  if (leadId && !(await db.user.count({ where: { id: leadId, ...projectPeople(project) } }))) return;
+  // Only sent by student projects. Blank clears the deadline.
+  const rawDue = form.get("dueAt");
+  const dueAt = typeof rawDue === "string" ? (rawDue && !Number.isNaN(new Date(rawDue).getTime()) ? new Date(rawDue) : null) : undefined;
   await db.project.update({
     where: { id: projectId },
-    data: { name, description, leadId, staleDays, gitAutomation, ...(PROJECT_COLORS.includes(color) && { color }) },
+    data: { name, description, leadId, staleDays, gitAutomation, dueAt, ...(PROJECT_COLORS.includes(color) && { color }) },
   });
   revalidatePath("/", "layout");
 }
 
 export async function deleteProject(projectId: string) {
-  await requireAdmin();
+  const admin = await requireAdmin();
+  await ownProject(admin, projectId);
   await db.project.delete({ where: { id: projectId } });
   revalidatePath("/", "layout");
   redirect("/projects");
 }
 
 export async function addStatus(projectId: string, form: FormData) {
-  await requireUser();
+  await requireProjectManager(projectId);
   const name = String(form.get("name") ?? "").trim();
   const category = String(form.get("category") ?? "TODO") as StatusCategory;
   if (!name) return;
@@ -71,8 +79,15 @@ export async function addStatus(projectId: string, form: FormData) {
   revalidatePath("/", "layout");
 }
 
+/** The status, if this person may run its project. */
+async function manageableStatus(statusId: string) {
+  const status = await db.status.findUniqueOrThrow({ where: { id: statusId } });
+  await requireProjectManager(status.projectId);
+  return status;
+}
+
 export async function updateStatus(statusId: string, form: FormData) {
-  await requireUser();
+  await manageableStatus(statusId);
   const name = String(form.get("name") ?? "").trim();
   const category = String(form.get("category") ?? "") as StatusCategory;
   const wipRaw = form.get("wipLimit");
@@ -85,8 +100,7 @@ export async function updateStatus(statusId: string, form: FormData) {
 }
 
 export async function moveStatus(statusId: string, direction: -1 | 1) {
-  await requireUser();
-  const status = await db.status.findUniqueOrThrow({ where: { id: statusId } });
+  const status = await manageableStatus(statusId);
   const all = await db.status.findMany({ where: { projectId: status.projectId }, orderBy: { position: "asc" } });
   const i = all.findIndex((s) => s.id === statusId);
   const j = i + direction;
@@ -98,8 +112,7 @@ export async function moveStatus(statusId: string, direction: -1 | 1) {
 
 /** Deletes a status; its issues move to the first remaining status. */
 export async function deleteStatus(statusId: string) {
-  await requireUser();
-  const status = await db.status.findUniqueOrThrow({ where: { id: statusId } });
+  const status = await manageableStatus(statusId);
   const others = await db.status.findMany({
     where: { projectId: status.projectId, id: { not: statusId } },
     orderBy: { position: "asc" },

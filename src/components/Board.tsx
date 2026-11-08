@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccess } from "./Access";
+
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -75,6 +77,7 @@ export function Board({ issues, statuses, users, meId, projectId, sprintId, stal
 
   useEffect(() => setCols(group(issues, statuses)), [issues, statuses]);
 
+  const { canEdit } = useAccess();
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     // Long-press to drag on touch screens, so swiping still scrolls the board.
@@ -174,12 +177,12 @@ export function Board({ issues, statuses, users, meId, projectId, sprintId, stal
         )}
       </div>
       <div data-peek-scope>
-      <DndContext id={`board-${projectId}`} sensors={sensors} collisionDetection={dropWherePointerIs} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}>
+      <DndContext id={`board-${projectId}`} sensors={canEdit ? sensors : []} collisionDetection={dropWherePointerIs} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}>
         <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:snap-none sm:px-0" data-tour="board-columns">
           {statuses.map((s, i) => (
             <Column key={s.id} status={s} issues={cols[s.id] ?? []} visible={visible} staleDays={staleDays}
-              onMenu={(issue, x, y) => setMenu({ issue, x, y })}
-              footer={i === 0 ? <QuickAdd projectId={projectId} users={users} meId={meId} sprintId={sprintId} statusId={s.id} /> : null} />
+              onMenu={(issue, x, y) => { if (canEdit) setMenu({ issue, x, y }); }}
+              footer={canEdit && i === 0 ? <QuickAdd projectId={projectId} users={users} meId={meId} sprintId={sprintId} statusId={s.id} /> : null} />
           ))}
         </div>
         <DragOverlay>{activeIssue ? <IssueCard issue={activeIssue} dragging staleDays={staleDays} /> : null}</DragOverlay>

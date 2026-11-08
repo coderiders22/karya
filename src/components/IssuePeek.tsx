@@ -83,7 +83,7 @@ export function IssuePeek({ meId }: { meId: string }) {
       if (e.key === "j" || e.key === "ArrowDown") { e.preventDefault(); step(1); }
       if (e.key === "k" || e.key === "ArrowUp") { e.preventDefault(); step(-1); }
       if (e.key === "o" || e.key === "Enter") { e.preventDefault(); router.push(`/issues/${key}`); setKey(null); }
-      if (e.key === "m" && data) { e.preventDefault(); save("assigneeId", "__me__"); }
+      if (e.key === "m" && data?.canEdit) { e.preventDefault(); save("assigneeId", "__me__"); }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
@@ -132,7 +132,7 @@ export function IssuePeek({ meId }: { meId: string }) {
             onClick={() => { navigator.clipboard.writeText(`${location.origin}/issues/${key}`); toast.success(`Link to ${key} copied`); }}>
             <Link2 size={15} />
           </button>
-          <button className="btn-icon hover:!text-red-600" data-tip="Delete issue" aria-label="Delete issue" disabled={!data}
+          {data?.canDelete && <button className="btn-icon hover:!text-red-600" data-tip="Delete issue" aria-label="Delete issue"
             onClick={async () => {
               if (!data || !(await confirmDialog({ title: `Delete ${data.key}?`, message: "Its comments, attachments and history are deleted too. This can't be undone.", danger: true, confirmLabel: "Delete issue" }))) return;
               const { id, key: deleted } = data;
@@ -145,7 +145,7 @@ export function IssuePeek({ meId }: { meId: string }) {
               });
             }}>
             <Trash2 size={15} />
-          </button>
+          </button>}
           <Link href={`/issues/${key}`} onClick={() => setKey(null)} className="btn-icon" data-tip="Open full page  O" aria-label="Open full page"><Maximize2 size={15} /></Link>
           <button className="btn-icon" onClick={() => setKey(null)} data-tip="Close  Esc" aria-label="Close"><X size={16} /></button>
         </header>
@@ -155,7 +155,7 @@ export function IssuePeek({ meId }: { meId: string }) {
             ? <LoaderBlock label={`Loading ${key}`} hint={`Opening ${key}`} size={36} className="flex-1" />
             : <p className="p-6 text-sm text-muted">This issue no longer exists.</p>
         ) : (
-          <div className={clsx("flex-1 overflow-y-auto transition-opacity", loading && "opacity-60")}>
+          <fieldset disabled={!data.canEdit} className={clsx("min-w-0 flex-1 overflow-y-auto transition-opacity", loading && "opacity-60")}>
             <div className="px-6 pb-4 pt-5">
               <div className="flex items-center gap-2 text-xs text-muted">
                 <TypeIcon type={data.type} /><IssueKey k={data.key} />
@@ -244,7 +244,7 @@ export function IssuePeek({ meId }: { meId: string }) {
                 </div>
               </div>
             </div>
-          </div>
+          </fieldset>
         )}
         <footer className="hidden shrink-0 items-center gap-3 border-t border-slate-200 px-4 py-2 text-[11px] text-muted sm:flex dark:border-slate-800">
           <span><span className="kbd">J</span> <span className="kbd">K</span> next / previous</span>

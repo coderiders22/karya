@@ -9,16 +9,18 @@ import type { CardIssue } from "@/lib/types";
 import { Avatar, IssueKey, PriorityIcon, StatusPill, TypeIcon } from "@/components/IssueBits";
 import { CreateSprintButton, MoveToSprint } from "@/components/BacklogClient";
 import { SprintHeaderActions } from "@/components/SprintControls";
+import { canEdit, canManageProject, projectPeople } from "@/lib/permissions";
 import { QuickAdd } from "@/components/QuickAdd";
 
 export default async function BacklogPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
   const me = await requireUser();
   const project = await getProjectByKey(key);
+  const canManage = canManageProject(me, project);
   const [sprints, issues, users, closed] = await Promise.all([
     db.sprint.findMany({ where: { projectId: project.id, state: { not: "CLOSED" } }, orderBy: { createdAt: "asc" } }),
     loadCards({ projectId: project.id, type: { notIn: ["EPIC", "SUBTASK"] }, OR: [{ sprintId: null }, { sprint: { state: { not: "CLOSED" } } }] }),
-    db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: projectPeople(project), select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.sprint.findMany({
       where: { projectId: project.id, state: "CLOSED" },
       orderBy: { endDate: "desc" },
@@ -59,14 +61,14 @@ export default async function BacklogPage({ params }: { params: Promise<{ key: s
                   {check.pct}% of usual velocity
                 </span>
               )}
-              <SprintHeaderActions
+              {canManage && <SprintHeaderActions
                 sprint={{ id: s.id, name: s.name, goal: s.goal, state: s.state, endDate: s.endDate?.toISOString() ?? null }}
                 canStart={!hasActive}
                 issueCount={list.length}
-              />
+              />}
             </header>
             <IssueRows issues={list} sprints={sprintOptions} />
-            <div className="p-1.5"><QuickAdd projectId={project.id} users={users} meId={me.id} sprintId={s.id} /></div>
+            {canEdit(me.role) && <div className="p-1.5"><QuickAdd projectId={project.id} users={users} meId={me.id} sprintId={s.id} /></div>}
           </section>
         );
       })}
@@ -77,10 +79,10 @@ export default async function BacklogPage({ params }: { params: Promise<{ key: s
             <div className="text-sm font-semibold">Backlog</div>
             <div className="text-xs text-muted">{backlog.length} issues · {backlog.reduce((n, i) => n + (i.storyPoints ?? 0), 0)} pts</div>
           </div>
-          <CreateSprintButton projectId={project.id} />
+          {canManage && <CreateSprintButton projectId={project.id} />}
         </header>
         <IssueRows issues={backlog} sprints={sprintOptions} />
-        <div className="p-1.5"><QuickAdd projectId={project.id} users={users} meId={me.id} /></div>
+        {canEdit(me.role) && <div className="p-1.5"><QuickAdd projectId={project.id} users={users} meId={me.id} /></div>}
       </section>
     </main>
   );

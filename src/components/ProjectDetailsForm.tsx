@@ -1,21 +1,39 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteProject, updateProject } from "@/app/actions/projects";
 import { PROJECT_COLORS } from "@/lib/constants";
 import { promptDialog } from "./Dialog";
 
 export function ProjectDetailsForm({
-  project, users, isAdmin,
-}: { project: { id: string; name: string; description: string; leadId: string | null; color: string; staleDays: number; gitAutomation: boolean }; users: { id: string; name: string }[]; isAdmin: boolean }) {
+  project, users, isAdmin, deadlineLabel,
+}: { project: { id: string; name: string; description: string; leadId: string | null; color: string; staleDays: number; gitAutomation: boolean; dueAt: string | null }; users: { id: string; name: string }[]; isAdmin: boolean; deadlineLabel?: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [due, setDue] = useState("");
+  // Filled in the browser, because only the browser knows the person's timezone.
+  useEffect(() => {
+    if (!project.dueAt) return setDue("");
+    const d = new Date(project.dueAt);
+    setDue(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+  }, [project.dueAt]);
   return (
-    <form action={(f) => start(async () => { await updateProject(project.id, f); setSaved(true); router.refresh(); })} className="space-y-3">
+    <form action={(f) => start(async () => {
+      if (deadlineLabel) f.set("dueAt", due ? new Date(due).toISOString() : "");
+      await updateProject(project.id, f);
+      setSaved(true);
+      router.refresh();
+    })} className="space-y-3">
       <label className="block"><span className="label">Name</span><input name="name" defaultValue={project.name} className="input mt-1" /></label>
       <label className="block"><span className="label">Description</span><textarea name="description" defaultValue={project.description} rows={3} className="input mt-1" /></label>
+      {deadlineLabel && (
+        <label className="block">
+          <span className="label">{deadlineLabel}</span>
+          <input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} className="input mt-1 max-w-xs" />
+        </label>
+      )}
       <label className="block">
         <span className="label">Project lead</span>
         <select name="leadId" defaultValue={project.leadId ?? ""} className="select mt-1">

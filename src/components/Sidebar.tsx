@@ -6,8 +6,9 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import {
   Home, FolderKanban, Search, Users, KanbanSquare, ListTodo, GanttChartSquare, Rows3, BarChart3, Settings2,
-  Bookmark, Menu, Plus, Coffee, BookOpen,
+  Bookmark, Menu, Plus, Coffee, BookOpen, KeyRound,
 } from "lucide-react";
+import { useAccess } from "./Access";
 import { Logo } from "./Logo";
 import { NotificationBell } from "./NotificationBell";
 import { openCreateIssue } from "./CreateIssueDialog";
@@ -57,8 +58,10 @@ function Section({ title, children, action, tour }: { title: string; children: R
   );
 }
 
-export function Sidebar({ projects, filters, user }: { projects: P[]; filters: F[]; user: React.ReactNode }) {
+export function Sidebar({ projects, filters, user, workspace, passwordRequests }: { projects: P[]; filters: F[]; user: React.ReactNode; workspace: string; /** Only set for the site owner. */ passwordRequests?: number }) {
   const path = usePathname();
+  const { mode, canEdit } = useAccess();
+  const student = mode === "STUDENT";
   const current = projects.find((p) => path.startsWith(`/projects/${p.key}/`) || path === `/projects/${p.key}`);
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [path]);
@@ -83,8 +86,8 @@ export function Sidebar({ projects, filters, user }: { projects: P[]; filters: F
         <Link href="/your-work"><Logo /></Link>
         <div className="flex-1" />
         <button className="btn-icon" aria-label="Search" onClick={() => window.dispatchEvent(new Event("trackr:palette"))}><Search size={17} /></button>
-        <button aria-label="New issue" onClick={() => openCreateIssue()}
-          className="grid size-8 place-items-center rounded-md bg-brand text-brand-fg active:scale-95"><Plus size={17} strokeWidth={2.25} /></button>
+        {canEdit && <button aria-label="New issue" onClick={() => openCreateIssue()}
+          className="grid size-8 place-items-center rounded-md bg-brand text-brand-fg active:scale-95"><Plus size={17} strokeWidth={2.25} /></button>}
       </div>
       {open && <div className="fixed inset-0 z-40 animate-fade bg-slate-950/40 backdrop-blur-[2px] lg:hidden" onClick={() => setOpen(false)} />}
       <aside
@@ -98,6 +101,7 @@ export function Sidebar({ projects, filters, user }: { projects: P[]; filters: F
           <Link href="/your-work"><Logo /></Link>
           <div data-tour="inbox"><NotificationBell /></div>
         </div>
+        {!student && <div className="truncate px-3.5 pb-2 text-[11px] text-slate-500" title={workspace}>{workspace}</div>}
 
         <div className="flex gap-1.5 px-3 pb-2">
           <button
@@ -109,24 +113,33 @@ export function Sidebar({ projects, filters, user }: { projects: P[]; filters: F
             <span className="flex-1 text-left">Search</span>
             <span className="kbd !border-white/10 !bg-white/5">⌘K</span>
           </button>
-          <button onClick={() => openCreateIssue()} data-tour="create" data-tip="New issue  C" aria-label="New issue"
-            className="grid size-8 place-items-center rounded-md bg-brand text-brand-fg shadow-[0_0_0_1px_rgb(255_255_255/0.08),0_4px_14px_-4px_var(--color-brand-500)] transition-[background-color,transform] hover:bg-brand-hover active:scale-95">
-            <Plus size={16} strokeWidth={2.25} />
-          </button>
+          {canEdit && (
+            <button onClick={() => openCreateIssue()} data-tour="create" data-tip="New issue  C" aria-label="New issue"
+              className="grid size-8 place-items-center rounded-md bg-brand text-brand-fg shadow-[0_0_0_1px_rgb(255_255_255/0.08),0_4px_14px_-4px_var(--color-brand-500)] transition-[background-color,transform] hover:bg-brand-hover active:scale-95">
+              <Plus size={16} strokeWidth={2.25} />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 pb-4">
           <nav className="space-y-px">
-            <NavLink href="/your-work" icon={Home} tour="your-work">Your work</NavLink>
+            <NavLink href="/your-work" icon={Home} tour="your-work">{student ? "Today" : "Your work"}</NavLink>
             <NavLink href="/projects" icon={FolderKanban} exact tour="projects">Projects</NavLink>
-            <NavLink href="/filters" icon={Rows3} exact tour="all-issues">All issues</NavLink>
-            <NavLink href="/settings/members" icon={Users} tour="team">Team</NavLink>
+            {!student && <NavLink href="/filters" icon={Rows3} exact tour="all-issues">All issues</NavLink>}
+            {!student && <NavLink href="/settings/members" icon={Users} tour="team">Team</NavLink>}
             <NavLink href="/guide" icon={BookOpen} tour="guide">Guide</NavLink>
           </nav>
+
+          {passwordRequests !== undefined && (
+            <Section title="Site owner">
+              <NavLink href="/admin/password-requests" icon={KeyRound} badge={passwordRequests > 0 ? String(passwordRequests) : undefined}>Password requests</NavLink>
+            </Section>
+          )}
 
           {current && (
             <Section title={current.name} tour="project-nav">
               <NavLink href={`/projects/${current.key}/board`} icon={KanbanSquare}>Board</NavLink>
+              {student && <NavLink href={`/projects/${current.key}/team`} icon={Users}>Team</NavLink>}
               <NavLink href={`/projects/${current.key}/backlog`} icon={ListTodo}>Backlog</NavLink>
               <NavLink href={`/projects/${current.key}/standup`} icon={Coffee}>Standup</NavLink>
               <NavLink href={`/projects/${current.key}/roadmap`} icon={GanttChartSquare}>Roadmap</NavLink>

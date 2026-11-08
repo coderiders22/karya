@@ -11,9 +11,35 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
+/// What someone may do in their workspace. See src/lib/permissions.ts.
 enum Role {
   ADMIN
   MEMBER
+  MANAGER
+  VIEWER
+}
+
+enum WorkspaceKind {
+  TEAM
+  STUDENT
+}
+
+/// Which home screen and tools someone gets.
+enum UserMode {
+  PROFESSIONAL
+  STUDENT
+}
+
+/// One team, company, department or class. Everything in it is private to its members.
+model Workspace {
+  id        String        @id @default(cuid())
+  name      String
+  kind      WorkspaceKind @default(TEAM)
+  createdAt DateTime      @default(now())
+  users     User[]
+  invites   Invite[]
+  projects  Project[]
+  labels    LabelColor[]
 }
 
 enum IssueType {
@@ -50,7 +76,15 @@ model User {
   name         String
   passwordHash String
   role         Role       @default(MEMBER)
+  mode         UserMode   @default(PROFESSIONAL)
+  /// Runs this Karya site, and answers forgot-password requests from every workspace. Can open any
+  /// account through a reset link, so it's set only on the first admin, never from a form or email.
+  siteOwner    Boolean    @default(false)
+  resetRequests PasswordResetRequest[]
+  workspaceId  String
+  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt    DateTime   @default(now())
+  projectMemberships ProjectMember[]
   assigned     Issue[]    @relation("assignee")
   reported     Issue[]    @relation("reporter")
   comments     Comment[]
@@ -63,9 +97,25 @@ model User {
   attachments   Attachment[]
   resets        PasswordReset[]
   github        GithubAccount?
+
+  @@index([workspaceId])
 }
 
 /// Single-use link an admin creates when someone forgets their password (no email server needed).
+/// Someone used "Forgot password?". The site owner answers by hand from the admin portal.
+model PasswordResetRequest {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  linkCreatedAt DateTime?
+  /// They set a new password, or the owner dismissed the request.
+  resolvedAt    DateTime?
+
+  @@index([userId])
+  @@index([resolvedAt, linkCreatedAt])
+}
+
 model PasswordReset {
   id        String    @id @default(cuid())
   token     String    @unique
@@ -81,6 +131,8 @@ model Invite {
   token     String    @unique
   email     String?
   role      Role      @default(MEMBER)
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt DateTime  @default(now())
   expiresAt DateTime
   usedAt    DateTime?
@@ -88,7 +140,9 @@ model Invite {
 
 model Project {
   id           String   @id @default(cuid())
-  key          String   @unique
+  key          String
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name         String
   description  String   @default("")
   leadId       String?
@@ -100,12 +154,37 @@ model Project {
   /// Connected with one click from project settings: "owner/repo", and the webhook Karya created there.
   githubRepo    String?
   githubHookId  String?
+  /// Sealed secret for this project's webhook. Empty on older connections (they use the shared one).
+  githubSecret  String?
+  /// The last delivery GitHub made, so people can see the connection is alive.
+  githubLastEventAt   DateTime?
+  githubLastEventType String?
+  /// Student projects: which template it started from, when it's due, and the link teammates join with.
+  template     String?
+  dueAt        DateTime?
+  joinCode     String?  @unique
   /// Days an issue can sit in an in-progress column before it is flagged as stale.
   staleDays    Int      @default(3)
   createdAt    DateTime @default(now())
   statuses     Status[]
   issues       Issue[]
   sprints      Sprint[]
+  members      ProjectMember[]
+
+  @@unique([workspaceId, key])
+}
+
+/// A student team. Teams cross workspaces, because a hackathon team and a major project team are
+/// different people, sometimes from different colleges.
+model ProjectMember {
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([projectId, userId])
+  @@index([userId])
 }
 
 model Status {
@@ -135,7 +214,7 @@ model Sprint {
 model Issue {
   id          String     @id @default(cuid())
   number      Int
-  key         String     @unique
+  key         String
   projectId   String
   project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   type        IssueType  @default(TASK)
@@ -173,6 +252,7 @@ model Issue {
   devActivity DevActivity[]
 
   @@unique([projectId, number])
+  @@index([key])
   @@index([projectId, statusId])
 }
 
@@ -234,6 +314,8 @@ enum NotificationKind {
   MENTIONED
   COMMENTED
   STATUS_CHANGED
+  TEAM_JOINED
+  PASSWORD_REQUEST
 }
 
 model Notification {
@@ -242,8 +324,10 @@ model Notification {
   user      User             @relation("recipient", fields: [userId], references: [id], onDelete: Cascade)
   actorId   String
   actor     User             @relation("notifActor", fields: [actorId], references: [id], onDelete: Cascade)
-  issueId   String
-  issue     Issue            @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  /// Set for issue notifications; others (a teammate joining) use `link` instead.
+  issueId   String?
+  issue     Issue?           @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  link      String?
   kind      NotificationKind
   message   String
   readAt    DateTime?
@@ -290,9 +374,13 @@ model DevActivity {
 /// A color someone chose for a label. Labels are plain names on issues, so a label without a row
 /// here gets a stable default color from its name. Shared by every project.
 model LabelColor {
-  name      String   @id
-  color     String
-  updatedAt DateTime @updatedAt
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  color       String
+  updatedAt   DateTime  @updatedAt
+
+  @@id([workspaceId, name])
 }
 
 /// A person's GitHub authorisation, used to list their repositories and add/remove Karya's webhook.
@@ -305,3 +393,4 @@ model GithubAccount {
   scope     String   @default("")
   updatedAt DateTime @updatedAt
 }
+

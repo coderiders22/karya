@@ -2,11 +2,13 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { ImportForm } from "@/components/ImportForm";
 import { PageHeader } from "@/components/PageHeader";
+import { notFound } from "next/navigation";
 
 export default async function ImportPage() {
   const me = await requireUser();
   if (me.role !== "ADMIN") return <main className="p-4 sm:p-6 text-sm text-muted">Only admins can import or back up data.</main>;
-  const projects = await db.project.findMany({ select: { id: true, key: true, name: true }, orderBy: { name: "asc" } });
+  if (me.mode === "STUDENT") notFound();
+  const projects = await db.project.findMany({ where: { workspaceId: me.workspaceId }, select: { id: true, key: true, name: true }, orderBy: { name: "asc" } });
   return (
     <main>
       <PageHeader title="Import & backup" description="Bring work in from Jira, or take a copy of everything out." />
@@ -27,8 +29,7 @@ export default async function ImportPage() {
       <section className="card space-y-3 p-5">
         <h2 className="font-semibold">Backup</h2>
         <p className="text-sm text-muted">
-          Download everything (projects, issues, comments, sprints, people without passwords) as one JSON file. For a full restorable
-          backup of your server, also run <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">docker compose exec db pg_dump -U trackr trackr &gt; backup.sql</code>.
+          Download everything in this workspace (projects, issues, comments, sprints, people without passwords) as one JSON file.
         </p>
         <a href="/api/backup" className="btn">Download JSON backup</a>
         <p className="text-sm text-muted">To move a single project to Jira, use <b>Project settings → Download Jira CSV</b>.</p>

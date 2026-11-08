@@ -5,7 +5,7 @@ import { buildJiraCsv } from "../src/lib/jiraCsv";
 import { importJiraCsv } from "../src/lib/jiraImport";
 
 async function main() {
-  const src = await db.project.findUniqueOrThrow({ where: { key: process.argv[2] } });
+  const src = await db.project.findFirstOrThrow({ where: { key: process.argv[2] } });
   const issues = await db.issue.findMany({
     where: { projectId: src.id },
     include: {
@@ -18,9 +18,9 @@ async function main() {
     },
   });
   const csv = buildJiraCsv(issues);
-  const admin = await db.user.findFirstOrThrow({ where: { role: "ADMIN" } });
+  const admin = await db.user.findFirstOrThrow({ where: { role: "ADMIN", workspaceId: src.workspaceId } });
   const dst = await db.project.create({
-    data: { key: "RT" + Math.floor(Math.random() * 1000), name: "Round trip", statuses: { create: [{ name: "To Do", category: "TODO", position: 0 }] } },
+    data: { key: "RT" + Math.floor(Math.random() * 1000), name: "Round trip", workspaceId: src.workspaceId, statuses: { create: [{ name: "To Do", category: "TODO", position: 0 }] } },
   });
   try {
     console.log(await importJiraCsv(csv, dst.id, admin.id));

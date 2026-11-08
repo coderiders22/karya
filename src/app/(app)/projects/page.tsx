@@ -1,20 +1,27 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
+import { canEdit, visibleProjects } from "@/lib/permissions";
 import { CreateProjectForm } from "@/components/CreateProjectForm";
 import { Avatar } from "@/components/IssueBits";
 import { ProjectBadge } from "@/components/Sidebar";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/IssueBits";
-import { FolderKanban } from "lucide-react";
+import { FolderKanban, Users } from "lucide-react";
+import { Countdown } from "@/components/LocalTime";
+import { StartProject } from "@/components/StudentProjects";
+import { templateById } from "@/lib/templates";
 
-export default async function ProjectsPage() {
+export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ template?: string }> }) {
+  const me = await requireUser();
   const projects = await db.project.findMany({
+    where: visibleProjects(me),
     orderBy: { name: "asc" },
-    include: { lead: { select: { name: true } }, _count: { select: { issues: true } } },
+    include: { lead: { select: { name: true } }, _count: { select: { issues: true, members: true } } },
   });
   const open = await db.issue.groupBy({
     by: ["projectId"],
-    where: { status: { category: { not: "DONE" } } },
+    where: { project: visibleProjects(me), status: { category: { not: "DONE" } } },
     _count: true,
   });
   const openBy = Object.fromEntries(open.map((o) => [o.projectId, o._count]));
@@ -24,7 +31,7 @@ export default async function ProjectsPage() {
       <div className="grid max-w-[1680px] gap-6 p-4 sm:p-6 lg:grid-cols-[1fr_300px]">
       <section>
         {projects.length === 0 ? (
-          <div className="card"><EmptyState icon={FolderKanban} title="No projects yet">Create one on the right. Each project gets its own board, backlog and key prefix.</EmptyState></div>
+          <div className="card"><EmptyState icon={FolderKanban} title="No projects yet">{me.mode === "STUDENT" ? "Start one from the form here. Teammates join it with a link." : "Create one on the right. Each project gets its own board, backlog and key prefix."}</EmptyState></div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4">
             {projects.map((p) => {
@@ -36,11 +43,16 @@ export default async function ProjectsPage() {
                     <ProjectBadge p={p} size={36} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-semibold group-hover:text-brand">{p.name}</div>
-                      <div className="font-mono text-[11px] text-muted">{p.key}</div>
+                      <div className="font-mono text-[11px] text-muted">{p.key}{templateById(p.template) && <span className="font-sans"> · {templateById(p.template)!.label}</span>}</div>
                     </div>
                     <Avatar name={p.lead?.name} />
                   </div>
-                  <p className="mt-3 line-clamp-2 min-h-[2.6em] text-[13px] text-muted">{p.description || "No description yet."}</p>
+                  {p.template ? (
+                    <div className="mt-3 flex min-h-[1.5rem] flex-wrap items-center gap-2 text-[13px] text-muted">
+                      {p.dueAt ? <Countdown iso={p.dueAt.toISOString()} label={templateById(p.template)?.deadlineLabel} /> : <span>No deadline set</span>}
+                      <span className="inline-flex items-center gap-1 text-xs"><Users size={12} />{p._count.members}</span>
+                    </div>
+                  ) : <p className="mt-3 line-clamp-2 min-h-[2.6em] text-[13px] text-muted">{p.description || "No description yet."}</p>}
                   <div className="mt-4">
                     <div className="mb-1.5 flex justify-between text-xs">
                       <span className="text-muted"><b className="font-semibold text-slate-800 dark:text-slate-200">{openN}</b> open of {total}</span>
@@ -57,7 +69,7 @@ export default async function ProjectsPage() {
         )}
       </section>
       <aside>
-        <CreateProjectForm />
+        {me.mode === "STUDENT" ? <StartProject initial={(await searchParams).template} /> : canEdit(me.role) && <CreateProjectForm />}
       </aside>
       </div>
     </main>

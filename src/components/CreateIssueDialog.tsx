@@ -12,6 +12,7 @@ import { getCreateContext } from "@/app/actions/labels";
 import { smartParse } from "@/lib/smartParse";
 import { AssigneePicker, LabelPicker, PriorityPicker, TypePicker } from "./Pickers";
 import { forgetProjectLabels, useTitleSuggest } from "./TitleSuggest";
+import { useAccess } from "./Access";
 
 export type ShellProject = { id: string; key: string; name: string };
 export type ShellUser = { id: string; name: string };
@@ -26,6 +27,7 @@ type Fields = { type: IssueType; priority: Priority; assigneeId: string; storyPo
 const EMPTY: Fields = { type: "TASK", priority: "MEDIUM", assigneeId: "", storyPoints: "", parentKey: "", dueDate: "" };
 
 export function CreateIssueDialog({ projects, users, meId }: { projects: ShellProject[]; users: ShellUser[]; meId: string }) {
+  const { canEdit } = useAccess();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<CreateDetail>({});
@@ -36,7 +38,7 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
   const [touched, setTouched] = useState<Set<keyof Fields>>(new Set());
   const [labels, setLabels] = useState<string[]>([]);
   const [inSprint, setInSprint] = useState(false);
-  const [ctx, setCtx] = useState<Record<string, { labels: string[]; activeSprint: string | null }>>({});
+  const [ctx, setCtx] = useState<Record<string, { labels: string[]; activeSprint: string | null; people: ShellUser[] }>>({});
   const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
   const [another, setAnother] = useState(false);
@@ -45,8 +47,10 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
   const ts = useTitleSuggest({ input: titleRef, value: title, setValue: setTitle });
 
   // While a suggestion menu is open, the half-typed "#fro" is ignored, so it can't show up as a label of its own.
-  const parsed = useMemo(() => smartParse(ts.textForParse, users, meId), [ts.textForParse, users, meId]);
   const project = ctx[projectId];
+  // Only the people on the chosen project, so nobody assigns work to someone who can't see it.
+  const people = project?.people ?? users;
+  const parsed = useMemo(() => smartParse(ts.textForParse, people, meId), [ts.textForParse, people, meId]);
 
   // Load the project's labels and running sprint (once per project).
   useEffect(() => {
@@ -97,7 +101,7 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
     };
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      if (e.key === "c" && !e.metaKey && !e.ctrlKey && !e.altKey && !t.closest("input,textarea,select,[contenteditable]")) {
+      if (canEdit && e.key === "c" && !e.metaKey && !e.ctrlKey && !e.altKey && !t.closest("input,textarea,select,[contenteditable]")) {
         e.preventDefault();
         onCreate(new CustomEvent("x", { detail: {} }));
       }
@@ -114,7 +118,7 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
   if (projects.length === 0) {
     return (
       <Modal onClose={() => setOpen(false)}>
-        <p className="text-sm">Create a project first. Issues always belong to a project.</p>
+        <p className="text-sm">Start a project first. Tasks always belong to a project.</p>
         <div className="mt-4 flex justify-end"><button className="btn" onClick={() => setOpen(false)}>OK</button></div>
       </Modal>
     );
@@ -122,7 +126,7 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
 
   // ---- Title suggestions: @ people, # labels, ! priority, / type ----
   const sg = ts.bind({
-    users, meId, labels: project?.labels ?? [],
+    users: people, meId, labels: project?.labels ?? [],
     current: { assigneeId: effective.assigneeId, priority: effective.priority, type: effective.type, labels: allLabels },
     onPick: (p) => {
       if (p.sym === "@") set("assigneeId", p.value);
@@ -139,7 +143,7 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
   };
 
   function submit() {
-    const finalTitle = ts.open ? smartParse(title, users, meId).title : parsed.title;
+    const finalTitle = ts.open ? smartParse(title, people, meId).title : parsed.title;
     if (!finalTitle.trim()) return setError("Give the issue a title");
     const form = new FormData();
     form.set("projectId", projectId);
@@ -208,7 +212,7 @@ export function CreateIssueDialog({ projects, users, meId }: { projects: ShellPr
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3 dark:border-slate-800">
           <TypePicker value={effective.type} onChange={(v) => set("type", v)} auto={auto("type", parsed.type)} />
           <PriorityPicker value={effective.priority} onChange={(v) => set("priority", v)} auto={auto("priority", parsed.priority)} />
-          <AssigneePicker value={effective.assigneeId} onChange={(v) => set("assigneeId", v)} users={users} meId={meId} auto={auto("assigneeId", parsed.assigneeId)} />
+          <AssigneePicker value={effective.assigneeId} onChange={(v) => set("assigneeId", v)} users={people} meId={meId} auto={auto("assigneeId", parsed.assigneeId)} />
           <Pill label="Estimate" auto={auto("storyPoints", parsed.storyPoints)}>
             <input type="number" min={0} value={effective.storyPoints} onChange={(e) => set("storyPoints", e.target.value)} className="pill-select w-10" placeholder="–" aria-label="Estimate in points" />
             <span className="text-muted">pts</span>

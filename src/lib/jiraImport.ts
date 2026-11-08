@@ -90,7 +90,7 @@ export async function importJiraCsv(text: string, projectId: string, importerId:
   if (col.summary < 0) throw new Error('Couldn\'t find a "Summary" column. Is this a Jira CSV export?');
 
   const project = await db.project.findUniqueOrThrow({ where: { id: projectId }, include: { statuses: true } });
-  const users = await db.user.findMany({ select: { id: true, name: true, email: true } });
+  const users = await db.user.findMany({ where: { workspaceId: project.workspaceId }, select: { id: true, name: true, email: true } });
   const unmatched = new Set<string>();
   const findUser = (v: string) => {
     const s = v.trim().toLowerCase();

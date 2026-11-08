@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { canEdit, visibleProjects } from "@/lib/permissions";
 import { MAX_UPLOAD_BYTES, usesBlob } from "@/lib/storage";
 
 /**
@@ -17,8 +18,10 @@ export async function POST(request: Request) {
       body,
       request,
       onBeforeGenerateToken: async (_pathname, clientPayload) => {
-        if (!(await getCurrentUser())) throw new Error("Sign in to upload files");
-        if (!clientPayload || !(await db.issue.findUnique({ where: { id: clientPayload }, select: { id: true } }))) throw new Error("Issue not found");
+        const me = await getCurrentUser();
+        if (!me) throw new Error("Sign in to upload files");
+        if (!canEdit(me.role)) throw new Error("Viewers can't upload files");
+        if (!clientPayload || !(await db.issue.count({ where: { id: clientPayload, project: visibleProjects(me) } }))) throw new Error("Issue not found");
         return { maximumSizeInBytes: MAX_UPLOAD_BYTES, addRandomSuffix: true };
       },
     });

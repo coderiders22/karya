@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccess } from "./Access";
+
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,6 +26,7 @@ export function IssueNavigator({
 }: {
   rows: NavRow[]; users: Opt[]; statusNames: string[]; sprints: Opt[]; projectId: string | null; query: string; isAdmin: boolean; showProject: boolean;
 }) {
+  const { canEdit } = useAccess();
   const router = useRouter();
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [msg, setMsg] = useState<string>();
@@ -102,6 +105,7 @@ export function IssueNavigator({
         <div className="card"><EmptyState icon={Inbox} title="No issues match">Try removing a filter or including done issues.</EmptyState></div>
       ) : (
         <div data-peek-scope className="card overflow-x-auto">
+          <fieldset disabled={!canEdit} className="contents">
           <table className="w-full text-sm">
             <thead className="text-left">
               <tr className="border-b border-slate-200 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-900 [&>th]:px-3 [&>th]:py-2 [&>th]:text-xs [&>th]:font-medium [&>th]:text-slate-500">
@@ -132,6 +136,7 @@ export function IssueNavigator({
               ))}
             </tbody>
           </table>
+          </fieldset>
         </div>
       )}
     </div>

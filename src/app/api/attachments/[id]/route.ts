@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isBlobKey, readStored } from "@/lib/storage";
+import { visibleProjects } from "@/lib/permissions";
 
 // Only these types are shown in the browser; everything else downloads (prevents HTML/SVG script injection).
 const INLINE = /^(image\/(png|jpe?g|gif|webp|avif)|application\/pdf|video\/(mp4|webm)|text\/plain)$/;
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await getCurrentUser())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const me = await getCurrentUser();
+  if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const a = await db.attachment.findUnique({ where: { id } });
+  const a = await db.attachment.findFirst({ where: { id, issue: { project: visibleProjects(me) } } });
   if (!a) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const inline = INLINE.test(a.mimeType);
   // Vercel Blob: the member is signed in, so send them on to the file. Blob URLs carry a long
