@@ -3,41 +3,32 @@
 import { useEffect, useRef, useState } from "react";
 import { LogoLoader } from "./LogoLoader";
 
-const HOLD_MS = 2500;
+const HOLD_MS = 2800;
+const WORDS = ["Plan.", "Track.", "Build.", "Deliver."];
 
 /**
- * First-load splash for the signed-in app.
+ * The opening screen, on every page of the site: the four cards land, the name rises, then the
+ * tagline arrives one word at a time. Part of the server HTML, so it covers the very first paint.
  *
- * Part of the server HTML, so it covers the page from the very first paint until React
- * has hydrated, then fades away.
- *
- *  - Only on a full page load; client-side navigation never shows it (the layout persists).
- *  - First load of a browser session: on screen for 2.5s from when it first appeared, the usual
- *    length for an app splash and enough to read the tagline. Later reloads: hidden as soon as
- *    the app is ready.
+ *  - First load of a browser session only. A script in the root layout hides it before paint on
+ *    later loads, and client-side navigation never shows it (the layout persists).
+ *  - Timed from when it appeared, so a slow connection doesn't add to the wait.
  *  - Never blocks: a CSS failsafe fades it out after 6s even if JavaScript fails.
  */
 export function SplashScreen() {
   const [phase, setPhase] = useState<"show" | "leaving" | "gone">("show");
-  const firstVisit = useRef<boolean | null>(null);
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Kept in a ref because development mode runs this effect twice, and the second run would see "booted".
-    if (firstVisit.current === null) {
-      try {
-        firstVisit.current = !sessionStorage.getItem("karya:booted");
-        sessionStorage.setItem("karya:booted", "1");
-      } catch {
-        firstVisit.current = true;
-      }
+    if (document.documentElement.classList.contains("splash-seen")) {
+      setPhase("gone");
+      return;
     }
-    // Counted from when the splash appeared, not from page start: after logging in the page has been
-    // open for a while, and on a slow connection hydrating has already used up part of the time.
+    try { sessionStorage.setItem("karya:booted", "1"); } catch {}
     const shownFor = Number(root.current?.getAnimations()[0]?.currentTime ?? 0);
-    const wait = firstVisit.current ? Math.max(0, HOLD_MS - shownFor) : 0;
+    const wait = Math.max(0, HOLD_MS - shownFor);
     const t1 = setTimeout(() => setPhase("leaving"), wait);
-    const t2 = setTimeout(() => setPhase("gone"), wait + 320);
+    const t2 = setTimeout(() => setPhase("gone"), wait + 400);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
@@ -46,15 +37,22 @@ export function SplashScreen() {
     <div
       ref={root}
       aria-hidden={phase !== "show"}
-      className={`splash fixed inset-0 z-[100] grid place-items-center bg-slate-50 transition-[opacity,visibility] duration-300 dark:bg-slate-950 ${phase === "leaving" ? "pointer-events-none opacity-0" : ""}`}
+      className={`splash dark fixed inset-0 z-[100] grid place-items-center bg-ink text-white transition-opacity duration-[400ms] ${phase === "leaving" ? "pointer-events-none opacity-0" : ""}`}
     >
-      <div className={`flex flex-col items-center transition-transform duration-300 ease-out-quint ${phase === "leaving" ? "scale-[1.04]" : ""}`}>
-        <span className="splash-in"><LogoLoader size={64} label="Opening Ruvano" /></span>
-        <div className="mt-5 px-6 text-center">
-          <div className="splash-word text-[24px] font-semibold tracking-tight text-slate-900 [animation-delay:700ms] dark:text-slate-100">Ruvano</div>
-          <div className="splash-word mt-1.5 text-[15px] font-medium text-brand [animation-delay:950ms]">Plan. Track. Build. Deliver.</div>
-          <div className="splash-word mt-1 text-[13px] text-slate-500 [animation-delay:1200ms] dark:text-slate-400">One platform. Every step forward.</div>
+      <div className={`flex flex-col items-center px-6 transition-transform duration-[400ms] ease-out-quint ${phase === "leaving" ? "scale-[1.05]" : ""}`}>
+        <span className="splash-in relative block">
+          <LogoLoader size={88} label="Opening Ruvano" />
+          <span aria-hidden className="splash-ring" />
+        </span>
+        <div className="splash-word mt-6 text-[34px] font-semibold leading-none tracking-[-0.025em] [animation-delay:700ms]">Ruvano</div>
+        <div className="mt-3.5 text-center text-[17px] font-medium text-brand-300 sm:text-[19px]">
+          {WORDS.map((word, i) => (
+            <span key={word} className="splash-word inline-block" style={{ animationDelay: `${900 + i * 130}ms` }}>
+              {word}{i < WORDS.length - 1 && <>&nbsp;</>}
+            </span>
+          ))}
         </div>
+        <div className="splash-word mt-2 text-center text-[14px] text-white/60 [animation-delay:1480ms]">One platform. Every step forward.</div>
       </div>
     </div>
   );

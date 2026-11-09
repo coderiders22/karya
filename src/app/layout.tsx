@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { DialogHost } from "@/components/Dialog";
+import { SplashScreen } from "@/components/SplashScreen";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 
@@ -26,13 +27,18 @@ export const metadata: Metadata = { title: { default: "Ruvano", template: "%s ·
 // Applies the saved theme ("light" | "dark" | "system") before first paint, and follows the OS when on "system".
 const themeScript = `try{var m=matchMedia('(prefers-color-scheme: dark)');var a=function(){var t=localStorage.getItem('theme')||'system';document.documentElement.classList.toggle('dark',t==='dark'||(t==='system'&&m.matches))};a();m.addEventListener('change',a)}catch(e){}`;
 
+// Hides the opening screen before first paint once it has been seen in this browser session.
+const splashScript = `try{if(sessionStorage.getItem('karya:booted'))document.documentElement.classList.add('splash-seen')}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${mono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: splashScript }} />
       </head>
       <body>
+        <SplashScreen />
         <NextTopLoader color="#17a383" height={2} showSpinner={false} shadow="0 0 8px #17a383" />
         {children}
         <DialogHost />

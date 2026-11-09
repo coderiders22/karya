@@ -254,19 +254,23 @@
     @keyframes ll-pulse { 50% { opacity: 0.45; } }
   }
 
-  /* Splash: the four cards land once and stay, then the name and taglines rise in turn. */
+  /* Splash: the four cards land, the tile pulses as the tick completes, then the words rise in turn. */
+  .splash-seen .splash { display: none; }
   .splash { animation: splash-failsafe 0.3s ease-out 6s forwards; }
   .splash-in   { animation: splash-in 420ms var(--ease-out-quint) both; }
-  .splash .ll-c1 { animation: splash-drop 420ms var(--ease-spring) 120ms 1 both; }
-  .splash .ll-c2 { animation: splash-drop 420ms var(--ease-spring) 270ms 1 both; }
-  .splash .ll-c3 { animation: splash-drop 420ms var(--ease-spring) 420ms 1 both; }
-  .splash .ll-c4 { animation: splash-drop 480ms var(--ease-spring) 590ms 1 both; }
-  .splash-word { animation: splash-rise 420ms var(--ease-out-quint) both; }
+  .splash .ll-c1 { animation: splash-drop 400ms var(--ease-spring) 100ms 1 both; }
+  .splash .ll-c2 { animation: splash-drop 400ms var(--ease-spring) 220ms 1 both; }
+  .splash .ll-c3 { animation: splash-drop 400ms var(--ease-spring) 340ms 1 both; }
+  .splash .ll-c4 { animation: splash-drop 460ms var(--ease-spring) 480ms 1 both; }
+  .splash-ring { position: absolute; inset: 0; border-radius: 25%; border: 2px solid var(--color-brand-400); opacity: 0; animation: splash-ring 900ms var(--ease-out-quint) 780ms 1 both; }
+  @keyframes splash-ring { from { opacity: 0.7; transform: scale(1); } to { opacity: 0; transform: scale(1.55); } }
+  .splash-word { animation: splash-rise 460ms var(--ease-out-quint) both; }
   @keyframes splash-drop { from { opacity: 0; transform: translateY(-4px) scale(0.6); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) {
     .splash-in, .splash-word, .splash .ll-c1, .splash .ll-c2, .splash .ll-c3, .splash .ll-c4 { animation: none; }
+    .splash-ring { display: none; }
   }
   @keyframes splash-in { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
-  @keyframes splash-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @keyframes splash-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   @keyframes splash-failsafe { to { opacity: 0; visibility: hidden; } }
 }

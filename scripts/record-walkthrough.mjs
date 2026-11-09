@@ -369,10 +369,6 @@ async function record() {
   // Without this the app's Copy buttons show their "couldn't copy" error in the video.
   await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: BASE });
   await ctx.addInitScript(overlay);
-  // Show the splash screen once, at the very start.
-  await ctx.addInitScript(() => {
-    try { if (!sessionStorage.getItem("wt-once")) { sessionStorage.setItem("wt-once", "1"); sessionStorage.removeItem("karya:booted"); } } catch {}
-  });
   const page = await ctx.newPage();
   const t0 = Date.now();
   const h = helpers(page, OUT);

@@ -7,7 +7,6 @@ import { Sidebar } from "@/components/Sidebar";
 import { UserMenu } from "@/components/UserMenu";
 import { Shortcuts } from "@/components/Shortcuts";
 import { IssuePeek } from "@/components/IssuePeek";
-import { SplashScreen } from "@/components/SplashScreen";
 import { TourHost } from "@/components/Tour";
 import { LabelColorsProvider } from "@/components/LabelColors";
 import { AccessProvider } from "@/components/Access";
@@ -41,7 +40,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <AccessProvider role={user.role} mode={user.mode}>
     <LabelColorsProvider initial={Object.fromEntries([...labelColors.filter((l) => l.workspaceId !== user.workspaceId), ...labelColors.filter((l) => l.workspaceId === user.workspaceId)].map((l) => [l.name, l.color]))}>
     <div className="min-h-screen lg:flex">
-      <SplashScreen />
       <Sidebar projects={projects} filters={filterLinks} workspace={user.workspace.name} passwordRequests={passwordRequests}
         user={<UserMenu name={user.name} email={user.email} role={user.role} logout={logout} />} />
       <div className="min-w-0 flex-1 bg-white dark:bg-slate-900/40">{children}</div>
