@@ -19,6 +19,9 @@
 // Run it on the full demo data from dev-bootstrap.mjs. See scripts/whats-new-scenes.mjs.
 // Output: public/guide/videos/whats-new.mp4 (+ .jpg, .vtt)
 //
+// AI in Ruvano: node scripts/record-walkthrough.mjs --ai   (full demo data, server with ZHIPUAI_API_KEY)
+// See scripts/ai-scenes.mjs. Output: public/guide/videos/ai-in-ruvano.mp4 (+ .jpg, .vtt)
+//
 // Each scene's narration is spoken with macOS `say` first, so we know how long it is; the scene
 // then lasts at least that long while its actions run. Afterwards the clips are laid on the
 // recording at each scene's start time and everything is encoded as H.264 + AAC.
@@ -37,7 +40,8 @@ const RATE = arg("rate", "172");
 const AUDIO_ONLY = process.argv.includes("--audio-only");
 const STUDENT = process.argv.includes("--student");
 const WHATS_NEW = process.argv.includes("--whats-new");
-const NAME = STUDENT ? "student-walkthrough" : WHATS_NEW ? "whats-new" : "walkthrough";
+const AI = process.argv.includes("--ai");
+const NAME = STUDENT ? "student-walkthrough" : WHATS_NEW ? "whats-new" : AI ? "ai-in-ruvano" : "walkthrough";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
 const OUT = path.resolve("public/guide/videos");
@@ -339,8 +343,9 @@ const TEAM_SCENES = [
   },
 ];
 
-const WHATS_NEW_KIT = WHATS_NEW ? await import("./whats-new-scenes.mjs") : null;
-const SCENES = STUDENT ? (await import("./student-scenes.mjs")).SCENES : WHATS_NEW ? WHATS_NEW_KIT.SCENES : TEAM_SCENES;
+// The short feature videos share one shape: prepare(browser), START, SCENES, and a close function.
+const WHATS_NEW_KIT = WHATS_NEW ? await import("./whats-new-scenes.mjs") : AI ? await import("./ai-scenes.mjs") : null;
+const SCENES = STUDENT ? (await import("./student-scenes.mjs")).SCENES : WHATS_NEW_KIT ? WHATS_NEW_KIT.SCENES : TEAM_SCENES;
 
 /** Speak one line with macOS `say`; returns the file and its length in seconds. */
 function speak(scene, voice) {
@@ -380,7 +385,7 @@ async function record() {
   await login.storageState({ path: path.join(TMP, "state.json") });
   await login.close();
   }
-  if (WHATS_NEW) await WHATS_NEW_KIT.prepare(browser);
+  if (WHATS_NEW_KIT) await WHATS_NEW_KIT.prepare(browser);
 
   const ctx = await browser.newContext({
     viewport: SIZE, deviceScaleFactor: 1, colorScheme: "light",
@@ -393,7 +398,7 @@ async function record() {
   const page = await ctx.newPage();
   const t0 = Date.now();
   const h = helpers(page, OUT);
-  await page.goto(`${BASE}${STUDENT ? "/signup?as=student" : WHATS_NEW ? WHATS_NEW_KIT.START : "/your-work"}`);
+  await page.goto(`${BASE}${STUDENT ? "/signup?as=student" : WHATS_NEW_KIT ? WHATS_NEW_KIT.START : "/your-work"}`);
   await page.locator(STUDENT ? "input[name=name]" : '[data-tour="projects"]').waitFor();
 
   const timeline = [];
@@ -488,4 +493,4 @@ async function narrate() {
 if (!AUDIO_ONLY) await record();
 await narrate();
 if (STUDENT) await (await import("./student-scenes.mjs")).closeStudentDb();
-if (WHATS_NEW) await WHATS_NEW_KIT.closeWhatsNewDb();
+if (WHATS_NEW_KIT) await (WHATS_NEW_KIT.closeWhatsNewDb ?? WHATS_NEW_KIT.closeAiDb)();

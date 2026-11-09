@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { Ban, Check, ChevronLeft, ChevronRight, ClipboardCopy, Hourglass, Link2, Play, Shuffle, Square, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { saveStandupNote, setStatusLink } from "@/app/actions/reality";
+import { aiStandupSummary } from "@/app/actions/ai";
 import type { CardIssue } from "@/lib/types";
 import { Avatar, EmptyState, IssueKey, TypeIcon } from "./IssueBits";
 import { daysSince } from "./IssueCard";
@@ -16,9 +17,9 @@ type Ctx = { projectId: string; day: string; canEdit: boolean };
 
 const TURN_SECONDS = 120;
 
-export function StandupView({ people, sinceLabel, staleDays, unassigned, sprintName, project, day, canEdit, canManage, statusLink }: {
+export function StandupView({ people, sinceLabel, staleDays, unassigned, sprintName, project, day, canEdit, canManage, statusLink, ai = false }: {
   people: PersonUpdate[]; sinceLabel: string; staleDays: number; unassigned: CardIssue[]; sprintName?: string;
-  project: { id: string; name: string }; day: string; canEdit: boolean; canManage: boolean; statusLink: string | null;
+  project: { id: string; name: string }; day: string; canEdit: boolean; canManage: boolean; statusLink: string | null; ai?: boolean;
 }) {
   const ctx: Ctx = { projectId: project.id, day, canEdit };
   // Notes typed during this standup, so the summary includes them before the page reloads.
@@ -81,6 +82,7 @@ export function StandupView({ people, sinceLabel, staleDays, unassigned, sprintN
           await navigator.clipboard.writeText(summaryText(project.name, sprintName, list, notes));
           toast.success("Standup summary copied", { description: "Paste it in Slack, Teams, WhatsApp or email." });
         }}><ClipboardCopy size={14} />Copy summary</button>
+        {ai && <AiSummary projectId={project.id} />}
         {canManage && <ShareStatus projectId={project.id} link={statusLink} />}
         <button className="btn-primary" onClick={() => { setRunning(true); setIdx(0); setLeft(TURN_SECONDS); }}><Play size={14} />Run standup</button>
         </div>
@@ -281,3 +283,30 @@ function ShareStatus({ projectId, link }: { projectId: string; link: string | nu
   );
 }
 
+
+/** A short summary written by AI from the board and today's notes, to check and paste into chat. */
+function AiSummary({ projectId }: { projectId: string }) {
+  const [text, setText] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <>
+      <button className="btn" disabled={pending} onClick={() => start(async () => {
+        const r = await aiStandupSummary(projectId);
+        if ("error" in r) toast.error(r.error); else setText(r.text);
+      })}>{pending ? "Writing…" : "AI summary"}</button>
+      {text && (
+        <div className="fixed inset-0 z-[70] grid place-items-center bg-black/30 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) setText(null); }}>
+          <div role="dialog" aria-modal="true" aria-label="AI summary" className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-4 text-[13px] shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <p className="font-medium">Standup summary</p>
+            <p className="mt-0.5 text-xs text-muted">Written by AI from the board and today&apos;s notes. Check it before you send it.</p>
+            <textarea value={text} onChange={(e) => setText(e.target.value)} rows={7} className="input mt-3 !h-auto w-full resize-y py-2 text-[13px] leading-relaxed" />
+            <div className="mt-3 flex justify-end gap-2">
+              <button className="btn !h-8" onClick={() => setText(null)}>Close</button>
+              <button className="btn-primary !h-8" onClick={async () => { await navigator.clipboard.writeText(text); toast.success("Summary copied"); }}>Copy</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

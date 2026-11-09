@@ -35,6 +35,8 @@ model Workspace {
   id        String        @id @default(cuid())
   name      String
   kind      WorkspaceKind @default(TEAM)
+  /// AI suggestions and summaries. Admins can switch them off, for example if company data mustn't leave.
+  aiEnabled Boolean       @default(true)
   createdAt DateTime      @default(now())
   users     User[]
   invites   Invite[]
@@ -167,6 +169,9 @@ model Project {
   githubCloseOnDone    Boolean  @default(true)
   /// Secret part of the read-only status link people can share outside the team. Null when off.
   statusToken  String?  @unique
+  /// A short AI-written summary for the status page, refreshed every few hours.
+  aiSummary    String?
+  aiSummaryAt  DateTime?
   /// Student projects: which template it started from, when it's due, and the link teammates join with.
   template     String?
   dueAt        DateTime?

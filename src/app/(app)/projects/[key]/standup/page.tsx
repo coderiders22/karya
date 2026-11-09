@@ -5,6 +5,7 @@ import { StandupView, type PersonUpdate } from "@/components/StandupView";
 import { canEdit, canManageProject, projectPeople } from "@/lib/permissions";
 import { requireUser } from "@/lib/auth";
 import { appUrl } from "@/lib/appUrl";
+import { aiAvailable } from "@/lib/ai";
 
 /** Start of the previous working day (Friday when today is Monday). */
 function lastWorkday(now = new Date()) {
@@ -28,6 +29,7 @@ export default async function StandupPage({ params }: { params: Promise<{ key: s
     db.comment.groupBy({ by: ["authorId"], where: { createdAt: { gte: since }, issue: { projectId: project.id } }, _count: true }),
     db.standupNote.findMany({ where: { projectId: project.id, day }, select: { userId: true, text: true, blocker: true } }),
   ]);
+  const workspace = await db.workspace.findUnique({ where: { id: project.workspaceId }, select: { aiEnabled: true } });
   const noteBy = Object.fromEntries(notes.map((n) => [n.userId, { text: n.text, blocker: n.blocker }]));
   const commentsBy = Object.fromEntries(comments.map((c) => [c.authorId, c._count]));
 
@@ -60,6 +62,7 @@ export default async function StandupPage({ params }: { params: Promise<{ key: s
       canEdit={canEdit(me.role)}
       canManage={canManageProject(me, project)}
       statusLink={project.statusToken ? `${appUrl()}/status/${project.statusToken}` : null}
+      ai={aiAvailable(workspace)}
     />
   );
 }

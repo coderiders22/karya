@@ -47,6 +47,7 @@ Done. Every push to the main branch now redeploys on its own, and database chang
 |---|---|
 | `GITHUB_WEBHOOK_SECRET` | To use the GitHub integration. See **Project settings → GitHub** in Ruvano. |
 | `APP_URL` | Only if you add your own domain, e.g. `https://ruvano.yourcompany.com` |
+| `ZHIPUAI_API_KEY` | Optional. Turns on AI suggestions and summaries (GLM on z.ai). Without it, AI buttons don't appear. |
 
 ## Limits to know (free plans)
 - **Neon:** 0.5 GB of data, enough for tens of thousands of issues. After about 5 minutes with no use the database sleeps, so the next click takes about a second longer.

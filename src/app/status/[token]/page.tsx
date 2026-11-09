@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { forecastSprint } from "@/lib/forecast";
 import { realityCheck, REALITY_TITLES } from "@/lib/reality";
 import { Logo } from "@/components/Logo";
 import { SprintForecast } from "@/components/SprintForecast";
+import { aiAvailable } from "@/lib/ai";
+import { refreshStatusSummary } from "@/lib/aiFeatures";
 
 export const metadata: Metadata = { title: "Project status", robots: { index: false, follow: false } };
 
@@ -18,8 +21,11 @@ const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: 
 export default async function StatusPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   if (!token || token.length < 16) notFound();
-  const project = await db.project.findUnique({ where: { statusToken: token } });
+  const project = await db.project.findUnique({ where: { statusToken: token }, include: { workspace: { select: { aiEnabled: true } } } });
   if (!project) notFound();
+  const ai = aiAvailable(project.workspace);
+  // Written after the response is sent, so this page never waits for AI.
+  if (ai) after(() => refreshStatusSummary(project.id));
 
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * DAY);
@@ -49,6 +55,14 @@ export default async function StatusPage({ params }: { params: Promise<{ token: 
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">{project.name}</h1>
           {project.dueAt && <p className="mt-1 text-[13px] text-muted">Deadline {project.dueAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}, {Math.max(0, Math.ceil((project.dueAt.getTime() - now.getTime()) / DAY))} days left</p>}
         </div>
+
+        {ai && project.aiSummary && (
+          <section className="card p-4">
+            <h2 className="text-[13px] font-semibold">In short</h2>
+            <p className="mt-1 text-[14px] leading-relaxed">{project.aiSummary}</p>
+            <p className="mt-2 text-[11.5px] text-muted">Summary written by AI from the board{project.aiSummaryAt ? `, ${project.aiSummaryAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })} UTC` : ""}. The lists below are exact.</p>
+          </section>
+        )}
 
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[["Shipped this week", shipped.length], ["In progress", doing.length], ["Blocked", blocked.length], ["Still open", openCount]].map(([label, n]) => (

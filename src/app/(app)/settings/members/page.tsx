@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { ROLE_LABEL, ROLE_MATRIX } from "@/lib/permissions";
 import { Avatar } from "@/components/IssueBits";
-import { InviteForm, MemberActions, RevokeInvite, WorkspaceName } from "@/components/MembersClient";
+import { AiSetting, InviteForm, MemberActions, RevokeInvite, WorkspaceName } from "@/components/MembersClient";
+import { aiConfigured } from "@/lib/ai";
 import { PageHeader } from "@/components/PageHeader";
 
 export const metadata = { title: "Team" };
@@ -14,9 +15,10 @@ export default async function MembersPage() {
   const isAdmin = me.role === "ADMIN";
   // A student's workspace is theirs alone. Teammates are per project, on each project's Team page.
   if (me.mode === "STUDENT") notFound();
-  const [users, invites] = await Promise.all([
+  const [users, invites, workspace] = await Promise.all([
     db.user.findMany({ where: { workspaceId: me.workspaceId }, orderBy: { createdAt: "asc" }, include: { _count: { select: { assigned: true } } } }),
     isAdmin ? db.invite.findMany({ where: { workspaceId: me.workspaceId, usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } }) : [],
+    db.workspace.findUniqueOrThrow({ where: { id: me.workspaceId }, select: { aiEnabled: true } }),
   ]);
   return (
     <main>
@@ -40,6 +42,7 @@ export default async function MembersPage() {
               )}
             </div>
             <div className="border-t border-slate-100 pt-4 dark:border-slate-800"><WorkspaceName name={me.workspace.name} /></div>
+            {aiConfigured() && <div className="border-t border-slate-100 pt-4 dark:border-slate-800"><AiSetting on={workspace.aiEnabled} /></div>}
           </section>
         )}
         <section className="card divide-y divide-slate-100 dark:divide-slate-800">

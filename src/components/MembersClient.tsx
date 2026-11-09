@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Role } from "@prisma/client";
 import { createInvite, createResetLink, removeUser, renameWorkspace, revokeInvite, setRole } from "@/app/actions/members";
+import { setWorkspaceAi } from "@/app/actions/ai";
 import { ROLE_LABEL } from "@/lib/permissions";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
@@ -98,5 +99,21 @@ export function WorkspaceName({ name }: { name: string }) {
       <label className="min-w-0 flex-1 basis-56"><span className="label">Workspace name</span><input name="name" value={value} onChange={(e) => setValue(e.target.value)} required maxLength={80} className="input mt-1" /></label>
       <button className="btn" disabled={pending || !value.trim() || value.trim() === name}>Rename</button>
     </form>
+  );
+}
+
+/** Admin switch for every AI feature in the workspace. */
+export function AiSetting({ on }: { on: boolean }) {
+  const router = useRouter();
+  const [checked, setChecked] = useState(on);
+  const [, start] = useTransition();
+  return (
+    <label className="flex items-start gap-2 text-[13px]">
+      <input type="checkbox" checked={checked} className="mt-0.5"
+        onChange={(e) => { const next = e.target.checked; setChecked(next); start(async () => { await setWorkspaceAi(next); toast.success(next ? "AI suggestions are on" : "AI suggestions are off"); router.refresh(); }); }} />
+      <span><span className="font-medium">AI suggestions and summaries</span>
+        <span className="block text-xs text-muted">Standup summaries, the status page summary, and matching untracked pull requests to cards. Card titles, notes and pull request titles are sent to the AI provider (GLM on z.ai); emails and passwords never are. AI only suggests: it never changes cards by itself.</span>
+      </span>
+    </label>
   );
 }

@@ -347,6 +347,19 @@ export const GUIDE: GuideSection[] = [
         keywords: "status report share link stakeholder client manager weekly update read only public",
       },
       {
+        id: "ai", title: "AI suggestions and summaries",
+        teamsOnly: true,
+        summary: "Optional help from AI. It only suggests and summarises; it never changes a card by itself.",
+        steps: [
+          "**Standup**: click **AI summary** for a few sentences written from the board and today's notes. Edit it if needed, then **Copy**.",
+          "**Reality check**: on a pull request that shipped without a card, click **Find its card**. If AI finds a match, click **Link to** that card to put the pull request on it.",
+          "**Status page**: an **In short** paragraph at the top, refreshed every few hours.",
+          "Admins can switch AI off for the whole workspace on the **Team** page.",
+        ],
+        result: "Card titles, notes and pull request titles are sent to the AI provider (GLM on z.ai). Emails and passwords never are. Anything AI writes is marked, so people know to check it.",
+        keywords: "ai artificial intelligence summary suggest glm match card automatic",
+      },
+      {
         id: "roadmap", title: "Roadmap",
         summary: "Every epic on a timeline with live progress from its child issues.",
         steps: [

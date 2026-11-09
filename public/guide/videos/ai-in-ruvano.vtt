@@ -1,0 +1,33 @@
+WEBVTT
+
+1
+00:00:00.200 --> 00:00:10.026
+This is how AI works in Ruvano. It reads what's already on your board, and helps in three places. It only suggests. It never changes your work by itself.
+
+2
+00:00:12.480 --> 00:00:25.420
+An admin turns AI on or off for the whole workspace, on the Team page. It says exactly what goes to the AI provider: card titles, notes, and pull request titles. Never emails, or passwords.
+
+3
+00:00:26.440 --> 00:00:38.058
+Reality check found a pull request that shipped without a card. Click, find its card. AI reads the pull request title and the cards on the board, and suggests the one it most likely completes.
+
+4
+00:00:47.480 --> 00:00:55.215
+If it's right, link it. The pull request goes on that card, and the card moves to done, just as if the pull request had mentioned it.
+
+5
+00:00:57.480 --> 00:01:07.469
+For a pull request that doesn't fit any card, like this tooling upgrade, AI says it couldn't find a match, instead of guessing. You can still add it as a done card yourself.
+
+6
+00:01:22.400 --> 00:01:32.997
+In standup, click, A I summary. It writes a few sentences from the board and today's notes, starting with whoever needs help. Edit it if you like, then copy it into your team chat.
+
+7
+00:01:44.920 --> 00:01:56.106
+And on the shared status page, managers and clients get a short summary at the top, refreshed every few hours. It's marked as written by AI, and the exact lists stay right underneath.
+
+8
+00:01:57.120 --> 00:02:06.667
+That's AI in Ruvano. It suggests and summarises, only from what's already on your board. Your team stays in control, and an admin can switch it off at any time.

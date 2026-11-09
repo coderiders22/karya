@@ -11,6 +11,7 @@ import { GithubPrompt } from "@/components/BoardSync";
 import { SprintForecast } from "@/components/SprintForecast";
 import { RealityCheck } from "@/components/RealityCheck";
 import { realityCheck } from "@/lib/reality";
+import { aiAvailable } from "@/lib/ai";
 
 export default async function BoardPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
@@ -28,6 +29,7 @@ export default async function BoardPage({ params }: { params: Promise<{ key: str
     active ? db.issue.findMany({ where: { sprintId: active.id }, select: { storyPoints: true, resolvedAt: true } }) : [],
     realityCheck(project),
   ]);
+  const workspace = await db.workspace.findUnique({ where: { id: project.workspaceId }, select: { aiEnabled: true } });
   const doneIds = new Set(project.statuses.filter((s) => s.category === "DONE").map((s) => s.id));
   const openCount = issues.filter((i) => !doneIds.has(i.statusId)).length;
   const forecast = active ? forecastSprint(active, sprintIssues) : null;
@@ -53,7 +55,7 @@ export default async function BoardPage({ params }: { params: Promise<{ key: str
       </div>}
       <div className="p-4 pt-3 sm:p-6 sm:pt-4">
         {!project.githubRepo && canManageProject(me, project) && <GithubPrompt projectKey={project.key} />}
-        <RealityCheck items={reality} github={!!project.githubRepo} canEdit={canEdit(me.role)} />
+        <RealityCheck items={reality} github={!!project.githubRepo} canEdit={canEdit(me.role)} ai={aiAvailable(workspace)} />
         <Board issues={issues} statuses={project.statuses} users={users} meId={me.id} projectId={project.id} projectKey={project.key}
           canFetchGithub={!!project.githubRepo && project.githubIssueSync && canEdit(me.role)} sprintId={active?.id} staleDays={project.staleDays} />
       </div>
