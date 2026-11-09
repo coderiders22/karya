@@ -15,6 +15,10 @@
 // Run it on an empty database, with DATABASE_URL and AUTH_SECRET set. See scripts/student-scenes.mjs.
 // Output: public/guide/videos/student-walkthrough.mp4 (+ .jpg, .vtt)
 //
+// What's new: node scripts/record-walkthrough.mjs --whats-new
+// Run it on the full demo data from dev-bootstrap.mjs. See scripts/whats-new-scenes.mjs.
+// Output: public/guide/videos/whats-new.mp4 (+ .jpg, .vtt)
+//
 // Each scene's narration is spoken with macOS `say` first, so we know how long it is; the scene
 // then lasts at least that long while its actions run. Afterwards the clips are laid on the
 // recording at each scene's start time and everything is encoded as H.264 + AAC.
@@ -32,11 +36,12 @@ const VOICE = arg("voice", "Tara");
 const RATE = arg("rate", "172");
 const AUDIO_ONLY = process.argv.includes("--audio-only");
 const STUDENT = process.argv.includes("--student");
-const NAME = STUDENT ? "student-walkthrough" : "walkthrough";
+const WHATS_NEW = process.argv.includes("--whats-new");
+const NAME = STUDENT ? "student-walkthrough" : WHATS_NEW ? "whats-new" : "walkthrough";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
 const OUT = path.resolve("public/guide/videos");
-const TMP = path.resolve(STUDENT ? ".video-tmp-student" : ".video-tmp-walkthrough");
+const TMP = path.resolve(`.video-tmp-${NAME}`);
 const SIZE = { width: 1280, height: 800 };
 mkdirSync(OUT, { recursive: true });
 mkdirSync(TMP, { recursive: true });
@@ -216,22 +221,36 @@ const TEAM_SCENES = [
     },
   },
   {
-    id: "standup", caption: step(10, "Run the daily standup"),
-    text: "Every morning, open Standup. It shows what each person finished, what they're on, and what's blocked, straight from the board. Run standup goes person by person, with a timer.",
+    id: "standup", caption: step(10, "Daily standup, with notes and a summary"),
+    text: "Every morning, open Standup. It shows what each person finished, what they're on, and what's blocked, straight from the board. Type a quick note for anyone who needs help, then copy a ready summary for your team chat.",
     async run(page, h) {
       await h.click(page.locator('[data-tour="project-nav"]').getByRole("link", { name: "Standup" }));
       const run = page.getByRole("button", { name: "Run standup" });
       await run.waitFor();
       await h.wait(1800);
-      await h.click(run);
-      await h.wait(2400);
-      await page.keyboard.press("ArrowRight"); await h.wait(2000);
-      await page.keyboard.press("ArrowRight"); await h.wait(1800);
-      await h.click(page.getByRole("button", { name: "End" }));
+      const note = page.locator('textarea[id^="note-"]').first();
+      await h.click(note); await h.type("Waiting on design for the reset email", 40);
+      await h.click(page.getByText("Needs help to move forward").first());
+      await h.wait(800);
+      await h.click(page.getByRole("button", { name: "Copy summary" }));
+      await h.wait(1800);
     },
   },
   {
-    id: "roadmap", caption: step(11, "Roadmap and Insights"),
+    id: "status", caption: step(11, "Share status without a meeting"),
+    text: "Share status makes a read-only page for your manager or client, with no login. It shows what shipped this week, what's in progress, and what's stuck.",
+    async run(page, h) {
+      await h.click(page.getByRole("button", { name: "Share status" }));
+      await h.click(page.getByRole("button", { name: "Create link" }));
+      await page.locator("input[readonly]").first().waitFor();
+      await h.wait(900);
+      await h.click(page.getByRole("button", { name: "Copy", exact: true }));
+      await h.wait(1100);
+      await h.click(page.getByRole("button", { name: "Close" }));
+    },
+  },
+  {
+    id: "roadmap", caption: step(12, "Roadmap and Insights"),
     text: "The roadmap shows every epic on a timeline, filling up as its stories get done. Insights tracks the sprint burndown, your velocity, and where work tends to wait.",
     async run(page, h) {
       await h.click(page.locator('[data-tour="project-nav"]').getByRole("link", { name: "Roadmap" }));
@@ -244,7 +263,7 @@ const TEAM_SCENES = [
     },
   },
   {
-    id: "bulk", caption: step(12, "Search and change many issues at once"),
+    id: "bulk", caption: step(13, "Search and change many issues at once"),
     text: "All issues searches across every project. Filter, tick a few rows, and change their assignee, priority, or sprint, in one go.",
     async run(page, h) {
       await h.click(page.locator('[data-tour="all-issues"]'));
@@ -264,8 +283,8 @@ const TEAM_SCENES = [
     },
   },
   {
-    id: "github", caption: step(13, "Connect GitHub"),
-    text: "Click GitHub in the project menu to connect your repository. New GitHub issues become cards on the board, and cards move by themselves when pull requests open and merge.",
+    id: "github", caption: step(14, "Connect GitHub"),
+    text: "Click GitHub in the project menu to connect your repository. New GitHub issues become cards, cards move by themselves when pull requests open and merge, and Reality check warns you when the board and the code disagree.",
     async run(page, h) {
       await h.click(page.getByRole("link", { name: P }).last());
       await page.locator('[data-tour="github"]').waitFor();
@@ -278,7 +297,7 @@ const TEAM_SCENES = [
     },
   },
   {
-    id: "settings", caption: step(14, "Settings: columns and Jira"),
+    id: "settings", caption: step(15, "Settings: columns and Jira"),
     text: "In project settings, you can set work in progress limits on columns, and export the whole project to Jira at any time.",
     say: "In project settings, you can set work in progress limits on columns, and export the whole project to Jira, at any time.",
     async run(page, h) {
@@ -291,7 +310,7 @@ const TEAM_SCENES = [
     },
   },
   {
-    id: "invite", caption: step(15, "Invite your team"),
+    id: "invite", caption: step(16, "Invite your team"),
     text: "Finally, invite your team. Type an email, choose a role, from viewer to admin, and create a link to share on Slack or WhatsApp. Only people you invite can get in.",
     say: "Finally, invite your team. Type an email, choose a role, from viewer to admin, and create a link to share on Slack, or WhatsApp. Only people you invite can get in.",
     async run(page, h) {
@@ -320,7 +339,8 @@ const TEAM_SCENES = [
   },
 ];
 
-const SCENES = STUDENT ? (await import("./student-scenes.mjs")).SCENES : TEAM_SCENES;
+const WHATS_NEW_KIT = WHATS_NEW ? await import("./whats-new-scenes.mjs") : null;
+const SCENES = STUDENT ? (await import("./student-scenes.mjs")).SCENES : WHATS_NEW ? WHATS_NEW_KIT.SCENES : TEAM_SCENES;
 
 /** Speak one line with macOS `say`; returns the file and its length in seconds. */
 function speak(scene, voice) {
@@ -360,6 +380,7 @@ async function record() {
   await login.storageState({ path: path.join(TMP, "state.json") });
   await login.close();
   }
+  if (WHATS_NEW) await WHATS_NEW_KIT.prepare(browser);
 
   const ctx = await browser.newContext({
     viewport: SIZE, deviceScaleFactor: 1, colorScheme: "light",
@@ -372,7 +393,7 @@ async function record() {
   const page = await ctx.newPage();
   const t0 = Date.now();
   const h = helpers(page, OUT);
-  await page.goto(`${BASE}${STUDENT ? "/signup?as=student" : "/your-work"}`);
+  await page.goto(`${BASE}${STUDENT ? "/signup?as=student" : WHATS_NEW ? WHATS_NEW_KIT.START : "/your-work"}`);
   await page.locator(STUDENT ? "input[name=name]" : '[data-tour="projects"]').waitFor();
 
   const timeline = [];
@@ -467,3 +488,4 @@ async function narrate() {
 if (!AUDIO_ONLY) await record();
 await narrate();
 if (STUDENT) await (await import("./student-scenes.mjs")).closeStudentDb();
+if (WHATS_NEW) await WHATS_NEW_KIT.closeWhatsNewDb();

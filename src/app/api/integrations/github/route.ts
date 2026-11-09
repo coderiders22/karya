@@ -67,7 +67,15 @@ export async function POST(req: Request) {
   if (event === "pull_request") {
     const pr = p.pull_request;
     const state = pr.merged ? "merged" : pr.state === "closed" ? "closed" : pr.draft ? "draft" : "open";
-    for (const issue of await findIssues(projectIds, pr.title, pr.head?.ref, pr.body)) {
+    const matches = await findIssues(projectIds, pr.title, pr.head?.ref, pr.body);
+    if (state === "merged" && matches.length === 0) {
+      // Work that shipped without a card. Reality Check shows it so it can be tracked or waved through.
+      const data = { title: String(pr.title ?? "").slice(0, 200), url: pr.html_url, author: pr.user?.login ?? "", mergedAt: pr.merged_at ? new Date(pr.merged_at) : new Date() };
+      for (const projectId of projectIds) {
+        await db.untrackedWork.upsert({ where: { projectId_externalId: { projectId, externalId: `${repo}#${pr.number}` } }, create: { projectId, externalId: `${repo}#${pr.number}`, ...data }, update: data });
+      }
+    }
+    for (const issue of matches) {
       await recordDev(issue.id, "PULL_REQUEST", `${repo}#${pr.number}`, { title: pr.title, url: pr.html_url, state, repo, author: pr.user?.login ?? "" });
       linked++;
       if (state === "merged") await autoTransition(issue, "done", `PR #${pr.number} merged`);

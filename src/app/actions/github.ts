@@ -208,6 +208,12 @@ export async function setGithubIssueSync(projectId: string, on: boolean) {
   revalidatePath("/", "layout");
 }
 
+export async function setGithubCloseOnDone(projectId: string, on: boolean) {
+  await requireProjectManager(projectId);
+  await db.project.update({ where: { id: projectId }, data: { githubCloseOnDone: on } });
+  revalidatePath("/", "layout");
+}
+
 /** Forgets the person's GitHub authorisation (to switch to another GitHub account). */
 export async function forgetGithubAccount() {
   const me = await requireUser();

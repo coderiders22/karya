@@ -9,13 +9,15 @@ import { CompleteSprintButton } from "@/components/SprintControls";
 import { canEdit, canManageProject, projectPeople } from "@/lib/permissions";
 import { GithubPrompt } from "@/components/BoardSync";
 import { SprintForecast } from "@/components/SprintForecast";
+import { RealityCheck } from "@/components/RealityCheck";
+import { realityCheck } from "@/lib/reality";
 
 export default async function BoardPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
   const me = await requireUser();
   const project = await getProjectByKey(key);
   const active = await db.sprint.findFirst({ where: { projectId: project.id, state: "ACTIVE" } });
-  const [issues, users, futureSprints, sprintIssues] = await Promise.all([
+  const [issues, users, futureSprints, sprintIssues, reality] = await Promise.all([
     loadCards({
       projectId: project.id,
       type: { not: "EPIC" },
@@ -24,6 +26,7 @@ export default async function BoardPage({ params }: { params: Promise<{ key: str
     db.user.findMany({ where: projectPeople(project), select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.sprint.findMany({ where: { projectId: project.id, state: "FUTURE" }, select: { id: true, name: true } }),
     active ? db.issue.findMany({ where: { sprintId: active.id }, select: { storyPoints: true, resolvedAt: true } }) : [],
+    realityCheck(project),
   ]);
   const doneIds = new Set(project.statuses.filter((s) => s.category === "DONE").map((s) => s.id));
   const openCount = issues.filter((i) => !doneIds.has(i.statusId)).length;
@@ -50,6 +53,7 @@ export default async function BoardPage({ params }: { params: Promise<{ key: str
       </div>}
       <div className="p-4 pt-3 sm:p-6 sm:pt-4">
         {!project.githubRepo && canManageProject(me, project) && <GithubPrompt projectKey={project.key} />}
+        <RealityCheck items={reality} github={!!project.githubRepo} canEdit={canEdit(me.role)} />
         <Board issues={issues} statuses={project.statuses} users={users} meId={me.id} projectId={project.id} projectKey={project.key}
           canFetchGithub={!!project.githubRepo && project.githubIssueSync && canEdit(me.role)} sprintId={active?.id} staleDays={project.staleDays} />
       </div>

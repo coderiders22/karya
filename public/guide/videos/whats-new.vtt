@@ -1,0 +1,33 @@
+WEBVTT
+
+1
+00:00:00.160 --> 00:00:05.880
+Here's what's new in Ruvano. Five features that keep your board honest, and save your team time.
+
+2
+00:00:07.600 --> 00:00:21.655
+First, Reality check. Ruvano now compares the board with your code on GitHub. It flags cards marked done while the pull request is still open, work in progress with no commits, pull requests waiting for review, and code that shipped without a card.
+
+3
+00:00:24.600 --> 00:00:31.370
+Work that shipped without a card goes on the board in one click, already done. So nothing your team ships stays invisible.
+
+4
+00:00:33.280 --> 00:00:43.707
+When a card that came from GitHub moves to Done, its GitHub issue now closes too. Move it back, and the issue reopens. You can switch this off on the project's GitHub page.
+
+5
+00:00:44.720 --> 00:00:56.252
+In standup, type what each person says, and tick needs help for blockers. Then copy a ready summary, and paste it into Slack, Teams, or WhatsApp. Nobody has to write meeting notes.
+
+6
+00:00:58.160 --> 00:01:08.761
+Need to update a manager or a client? Share status creates a read-only page, with no login. What shipped this week, what's in progress, and what's stuck, always up to date.
+
+7
+00:01:10.800 --> 00:01:20.247
+And for student teams, the Team page now has a contribution report. Who finished what, with comments, commits, and pull requests. Ready to print for the viva.
+
+8
+00:01:21.520 --> 00:01:26.471
+That's what's new in Ruvano. Every feature is explained in the Guide, inside the app.

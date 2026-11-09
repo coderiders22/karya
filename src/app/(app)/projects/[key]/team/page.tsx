@@ -4,7 +4,9 @@ import { appUrl } from "@/lib/appUrl";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canManageProject } from "@/lib/permissions";
+import { contributions } from "@/lib/contribution";
 import { getProjectByKey } from "@/lib/project";
+import { FileText } from "lucide-react";
 import { Avatar } from "@/components/IssueBits";
 import { LeaveProject, RemoveTeammate, TeamLink } from "@/components/StudentProjects";
 
@@ -16,29 +18,23 @@ export default async function TeamPage({ params }: { params: Promise<{ key: stri
   if (me.mode !== "STUDENT") notFound();
   const project = await getProjectByKey((await params).key);
   const canManage = canManageProject(me, project);
-  const [members, issues] = await Promise.all([
-    db.projectMember.findMany({ where: { projectId: project.id }, orderBy: { createdAt: "asc" }, select: { user: { select: { id: true, name: true, workspaceId: true } } } }),
-    db.issue.findMany({ where: { projectId: project.id, type: { not: "EPIC" } }, select: { assigneeId: true, dueDate: true, status: { select: { category: true } } } }),
+  const [rows, members, unassignedIssues] = await Promise.all([
+    contributions(project),
+    db.projectMember.findMany({ where: { projectId: project.id }, select: { user: { select: { id: true, workspaceId: true } } } }),
+    db.issue.findMany({ where: { projectId: project.id, type: { not: "EPIC" }, assigneeId: null, status: { category: { not: "DONE" } } }, select: { id: true } }),
   ]);
-  const today = new Date().toISOString().slice(0, 10);
-  const tally = (assigneeId: string | null) => {
-    const mine = issues.filter((i) => i.assigneeId === assigneeId);
-    return {
-      todo: mine.filter((i) => i.status.category === "TODO").length,
-      doing: mine.filter((i) => i.status.category === "IN_PROGRESS").length,
-      done: mine.filter((i) => i.status.category === "DONE").length,
-      overdue: mine.filter((i) => i.status.category !== "DONE" && i.dueDate && i.dueDate.toISOString().slice(0, 10) < today).length,
-    };
-  };
-  const rows = members.map(({ user }) => ({ ...user, ...tally(user.id) })).sort((a, b) => b.done - a.done);
-  const unassigned = tally(null);
-  const openUnassigned = unassigned.todo + unassigned.doing;
+  const workspaceOf = Object.fromEntries(members.map((m) => [m.user.id, m.user.workspaceId]));
+  const github = !!project.githubRepo;
+  const openUnassigned = unassignedIssues.length;
 
   return (
     <main className="max-w-3xl space-y-6 p-4 sm:p-6">
       {project.joinCode && <TeamLink projectId={project.id} projectName={project.name} link={`${appUrl()}/join/${project.joinCode}`} canReset={canManage} />}
       <section>
-        <h2 className="section-title mb-2">Who's doing what</h2>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <h2 className="section-title">Who's doing what</h2>
+          <Link href={`/report/${project.key}`} className="btn !h-7 text-xs"><FileText size={13} />Contribution report</Link>
+        </div>
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[26rem] text-[13px]">
             <thead>
@@ -47,6 +43,7 @@ export default async function TeamPage({ params }: { params: Promise<{ key: stri
                 <th scope="col" className="w-14 px-2 py-2 text-right font-medium">To do</th>
                 <th scope="col" className="w-14 px-2 py-2 text-right font-medium">Doing</th>
                 <th scope="col" className="w-14 px-2 py-2 text-right font-medium">Done</th>
+                {github && <th scope="col" className="w-16 px-2 py-2 text-right font-medium" title="Commits by people who connected GitHub in Ruvano">Commits</th>}
                 {canManage && <th scope="col" className="w-20"><span className="sr-only">Actions</span></th>}
               </tr>
             </thead>
@@ -64,9 +61,10 @@ export default async function TeamPage({ params }: { params: Promise<{ key: stri
                   <td className="px-2 py-2 text-right tabular-nums">{p.todo}</td>
                   <td className="px-2 py-2 text-right tabular-nums">{p.doing}</td>
                   <td className="px-2 py-2 text-right font-semibold tabular-nums">{p.done}</td>
+                  {github && <td className="px-2 py-2 text-right tabular-nums text-muted">{p.github ? p.commits : "–"}</td>}
                   {canManage && (
                     <td className="px-2 py-1 text-right">
-                      {p.id !== project.leadId && p.workspaceId !== project.workspaceId && <RemoveTeammate projectId={project.id} userId={p.id} name={p.name} />}
+                      {p.id !== project.leadId && workspaceOf[p.id] !== project.workspaceId && <RemoveTeammate projectId={project.id} userId={p.id} name={p.name} />}
                     </td>
                   )}
                 </tr>

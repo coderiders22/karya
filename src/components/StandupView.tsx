@@ -1,20 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { Ban, ChevronLeft, ChevronRight, Hourglass, Play, Shuffle, Square, Timer } from "lucide-react";
+import { Ban, Check, ChevronLeft, ChevronRight, ClipboardCopy, Hourglass, Link2, Play, Shuffle, Square, Timer } from "lucide-react";
+import { toast } from "sonner";
+import { saveStandupNote, setStatusLink } from "@/app/actions/reality";
 import type { CardIssue } from "@/lib/types";
 import { Avatar, EmptyState, IssueKey, TypeIcon } from "./IssueBits";
 import { daysSince } from "./IssueCard";
 
-export type PersonUpdate = { id: string; name: string; done: CardIssue[]; doing: CardIssue[]; blocked: CardIssue[]; next: CardIssue[]; comments: number };
+export type PersonUpdate = { id: string; name: string; done: CardIssue[]; doing: CardIssue[]; blocked: CardIssue[]; next: CardIssue[]; comments: number; note: { text: string; blocker: boolean } };
+
+type Ctx = { projectId: string; day: string; canEdit: boolean };
 
 const TURN_SECONDS = 120;
 
-export function StandupView({ people, sinceLabel, staleDays, unassigned, sprintName }: {
+export function StandupView({ people, sinceLabel, staleDays, unassigned, sprintName, project, day, canEdit, canManage, statusLink }: {
   people: PersonUpdate[]; sinceLabel: string; staleDays: number; unassigned: CardIssue[]; sprintName?: string;
+  project: { id: string; name: string }; day: string; canEdit: boolean; canManage: boolean; statusLink: string | null;
 }) {
+  const ctx: Ctx = { projectId: project.id, day, canEdit };
+  // Notes typed during this standup, so the summary includes them before the page reloads.
+  const [notes, setNotes] = useState<Record<string, PersonUpdate["note"]>>(() => Object.fromEntries(people.map((p) => [p.id, p.note])));
+  const noteChanged = (id: string, note: PersonUpdate["note"]) => setNotes((n) => ({ ...n, [id]: note }));
   const [order, setOrder] = useState(people.map((p) => p.id));
   const [running, setRunning] = useState(false);
   const [idx, setIdx] = useState(0);
@@ -25,7 +34,7 @@ export function StandupView({ people, sinceLabel, staleDays, unassigned, sprintN
   const totals = {
     done: people.reduce((n, p) => n + p.done.length, 0),
     stuck: people.reduce((n, p) => n + p.doing.filter((i) => daysSince(i.statusChangedAt) >= staleDays).length, 0),
-    blocked: people.reduce((n, p) => n + p.blocked.length, 0),
+    blocked: people.reduce((n, p) => n + p.blocked.length + (notes[p.id]?.blocker ? 1 : 0), 0),
   };
 
   useEffect(() => {
@@ -66,9 +75,15 @@ export function StandupView({ people, sinceLabel, staleDays, unassigned, sprintN
         <Stat n={totals.done} label="finished" />
         <Stat n={totals.stuck} label="stuck" tone={totals.stuck ? "amber" : undefined} />
         <Stat n={totals.blocked} label="blocked" tone={totals.blocked ? "rose" : undefined} />
-        <div className="flex-1" />
+        <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
         <button className="btn" onClick={() => setOrder([...order].sort(() => Math.random() - 0.5))}><Shuffle size={14} />Shuffle order</button>
+        <button className="btn" onClick={async () => {
+          await navigator.clipboard.writeText(summaryText(project.name, sprintName, list, notes));
+          toast.success("Standup summary copied", { description: "Paste it in Slack, Teams, WhatsApp or email." });
+        }}><ClipboardCopy size={14} />Copy summary</button>
+        {canManage && <ShareStatus projectId={project.id} link={statusLink} />}
         <button className="btn-primary" onClick={() => { setRunning(true); setIdx(0); setLeft(TURN_SECONDS); }}><Play size={14} />Run standup</button>
+        </div>
       </div>
 
       {running && list[idx] ? (
@@ -84,14 +99,14 @@ export function StandupView({ people, sinceLabel, staleDays, unassigned, sprintN
             <button className="btn-icon" onClick={() => go(1)} aria-label="Next person"><ChevronRight size={18} /></button>
             <button className="btn" onClick={() => setRunning(false)}><Square size={12} />End</button>
           </div>
-          <div data-peek-scope><PersonCard p={list[idx]} staleDays={staleDays} large /></div>
+          <div data-peek-scope><PersonCard p={list[idx]} staleDays={staleDays} large ctx={ctx} note={notes[list[idx].id]} onNote={noteChanged} /></div>
           <p className="mt-3 text-center text-xs text-muted">
             <span className="kbd">→</span> or <span className="kbd">space</span> next person · <span className="kbd">←</span> back · <span className="kbd">esc</span> end
           </p>
         </div>
       ) : (
         <div data-peek-scope className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4">
-          {list.map((p) => <PersonCard key={p.id} p={p} staleDays={staleDays} />)}
+          {list.map((p) => <PersonCard key={p.id} p={p} staleDays={staleDays} ctx={ctx} note={notes[p.id]} onNote={noteChanged} />)}
           {unassigned.length > 0 && (
             <section className="card p-4">
               <h3 className="mb-2 text-sm font-semibold">Nobody owns these yet</h3>
@@ -114,7 +129,7 @@ function Stat({ n, label, tone }: { n: number; label: string; tone?: "amber" | "
   );
 }
 
-function PersonCard({ p, staleDays, large }: { p: PersonUpdate; staleDays: number; large?: boolean }) {
+function PersonCard({ p, staleDays, large, ctx, note, onNote }: { p: PersonUpdate; staleDays: number; large?: boolean; ctx: Ctx; note: PersonUpdate["note"]; onNote: (id: string, n: PersonUpdate["note"]) => void }) {
   return (
     <section className={clsx("card min-w-0", large ? "p-4 sm:p-6" : "p-4")}>
       <div className="mb-3 flex items-center gap-2.5">
@@ -128,6 +143,7 @@ function PersonCard({ p, staleDays, large }: { p: PersonUpdate; staleDays: numbe
       <Group title="Working on" items={p.doing} staleDays={staleDays} empty="Nothing in progress." />
       {p.blocked.length > 0 && <Group title="Blocked" items={p.blocked} tone="rose" />}
       <Group title="Up next" items={p.next} empty="Nothing queued in the sprint." />
+      <NoteBox key={p.id} personId={p.id} name={p.name} ctx={ctx} note={note} onNote={onNote} />
     </section>
   );
 }
@@ -167,3 +183,101 @@ function IssueList({ items, staleDays }: { items: CardIssue[]; staleDays?: numbe
     </ul>
   );
 }
+
+/** What the person said that the tracker doesn't know. Saves when you leave the box. */
+function NoteBox({ personId, name, ctx, note, onNote }: { personId: string; name: string; ctx: Ctx; note: PersonUpdate["note"]; onNote: (id: string, n: PersonUpdate["note"]) => void }) {
+  const [text, setText] = useState(note.text);
+  const [blocker, setBlocker] = useState(note.blocker);
+  const [saving, start] = useTransition();
+  const saved = useRef(note);
+  const save = (next: PersonUpdate["note"]) => {
+    onNote(personId, next);
+    if (next.text === saved.current.text && next.blocker === saved.current.blocker) return;
+    saved.current = next;
+    start(async () => { await saveStandupNote(ctx.projectId, personId, ctx.day, next.text, next.blocker); });
+  };
+  if (!ctx.canEdit) {
+    if (!note.text && !note.blocker) return null;
+    return (
+      <div className="mt-3 border-t border-slate-100 pt-2 text-[13px] dark:border-slate-800">
+        {note.blocker && <p className="mb-1 inline-flex items-center gap-1 text-[11px] font-medium text-rose-600"><Ban size={11} />Needs help</p>}
+        {note.text && <p className="whitespace-pre-wrap">{note.text}</p>}
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3 border-t border-slate-100 pt-2 dark:border-slate-800">
+      <div className="mb-1 flex items-center justify-between">
+        <label htmlFor={`note-${personId}`} className="text-[11px] font-medium text-slate-500">Notes</label>
+        <span className="text-[11px] text-slate-400" aria-live="polite">{saving ? "Saving…" : ""}</span>
+      </div>
+      <textarea id={`note-${personId}`} value={text} rows={2} placeholder={`Anything ${name.split(" ")[0]} said that isn't on the board`}
+        onChange={(e) => setText(e.target.value)} onBlur={() => save({ text, blocker })}
+        onKeyDown={(e) => e.stopPropagation()}
+        className="input !h-auto min-h-[3.25rem] w-full resize-y py-1.5 text-[13px]" />
+      <label className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] text-slate-600 dark:text-slate-300">
+        <input type="checkbox" checked={blocker} onChange={(e) => { setBlocker(e.target.checked); save({ text, blocker: e.target.checked }); }} />
+        Needs help to move forward
+      </label>
+    </div>
+  );
+}
+
+/** Plain text that reads well when pasted into chat or email. */
+function summaryText(projectName: string, sprintName: string | undefined, people: PersonUpdate[], notes: Record<string, PersonUpdate["note"]>) {
+  const date = new Date().toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  const line = (i: CardIssue) => `${i.key} ${i.title}`;
+  const out = [`Standup, ${projectName}${sprintName ? ` (${sprintName})` : ""}, ${date}`];
+  const help: string[] = [];
+  for (const p of people) {
+    const n = notes[p.id] ?? p.note;
+    const parts = [
+      p.done.length && `  Done: ${p.done.map(line).join("; ")}`,
+      p.doing.length && `  Working on: ${p.doing.map(line).join("; ")}`,
+      p.blocked.length && `  Blocked: ${p.blocked.map(line).join("; ")}`,
+      n.text.trim() && `  Notes: ${n.text.trim().replace(/\n+/g, " ")}`,
+    ].filter(Boolean) as string[];
+    if (n.blocker) help.push(p.name);
+    if (parts.length) out.push("", p.name, ...parts);
+  }
+  if (help.length) out.push("", `Needs help: ${help.join(", ")}`);
+  return out.join("\n");
+}
+
+/** Turns the read-only status page on or off, and copies its link. */
+function ShareStatus({ projectId, link }: { projectId: string; link: string | null }) {
+  const [url, setUrl] = useState(link);
+  const [open, setOpen] = useState(false);
+  const [pending, start] = useTransition();
+  return (
+    <>
+      <button className="btn" aria-expanded={open} onClick={() => setOpen(!open)}><Link2 size={14} />Share status</button>
+      {open && (
+        <div className="fixed inset-0 z-[70] grid place-items-center bg-black/30 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+          onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
+        <div role="dialog" aria-modal="true" aria-label="Share status" className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-4 text-[13px] shadow-xl dark:border-slate-700 dark:bg-slate-900">
+          <p className="font-medium">Status page for people outside the team</p>
+          <p className="mt-0.5 text-xs text-muted">Read-only and no login: what shipped this week, what's in progress, what's stuck. Anyone with the link can open it.</p>
+          {url ? (
+            <>
+              <div className="mt-2 flex gap-1.5">
+                <input readOnly value={url} className="input !h-8 min-w-0 flex-1 font-mono text-[11.5px]" onFocus={(e) => e.target.select()} />
+                <button className="btn !h-8" onClick={async () => { await navigator.clipboard.writeText(url); toast.success("Status link copied"); }}><Check size={13} />Copy</button>
+              </div>
+              <div className="mt-2 flex gap-3 text-xs">
+                <a href={url} target="_blank" rel="noreferrer" className="text-brand hover:underline">Open it</a>
+                <button className="text-muted hover:text-slate-900 dark:hover:text-white" disabled={pending} onClick={() => start(async () => setUrl(await setStatusLink(projectId, true)))}>New link</button>
+                <button className="text-rose-600 hover:underline" disabled={pending} onClick={() => start(async () => { await setStatusLink(projectId, false); setUrl(null); })}>Turn off</button>
+              </div>
+            </>
+          ) : (
+            <button className="btn-primary mt-3 !h-8" disabled={pending} onClick={() => start(async () => setUrl(await setStatusLink(projectId, true)))}>Create link</button>
+          )}
+          <div className="mt-3 flex justify-end border-t border-slate-100 pt-3 dark:border-slate-800"><button className="btn !h-8" onClick={() => setOpen(false)}>Close</button></div>
+        </div>
+        </div>
+      )}
+    </>
+  );
+}
+

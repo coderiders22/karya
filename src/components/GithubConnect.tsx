@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Activity, Check, CircleAlert, CircleCheck, ExternalLink, Github, Loader2, Lock, Search } from "lucide-react";
 import { toast } from "sonner";
-import { checkGithubConnection, connectGithubRepo, disconnectGithubRepo, forgetGithubAccount, linkRepoByHand, listGithubRepos, setGithubIssueSync } from "@/app/actions/github";
+import { checkGithubConnection, connectGithubRepo, disconnectGithubRepo, forgetGithubAccount, linkRepoByHand, listGithubRepos, setGithubCloseOnDone, setGithubIssueSync } from "@/app/actions/github";
 import { FetchGithubButton, pullGithubIssues } from "./BoardSync";
 import { confirmDialog } from "./Dialog";
 import { timeAgo } from "./NotificationBell";
@@ -22,6 +22,7 @@ type Props = {
   lastEventType: string | null;
   hasHook: boolean;
   issueSync: boolean;
+  closeOnDone: boolean;
 };
 
 const MESSAGES: Record<string, string> = {
@@ -33,7 +34,7 @@ const MESSAGES: Record<string, string> = {
 };
 
 /** A project's GitHub page: connect a repository in a few clicks, see that it's working, disconnect. */
-export function GithubConnect({ projectId, projectKey, configured, repo, login, status, automation, canManage, lastEventAt, lastEventType, hasHook, issueSync }: Props) {
+export function GithubConnect({ projectId, projectKey, configured, repo, login, status, automation, canManage, lastEventAt, lastEventType, hasHook, issueSync, closeOnDone }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -88,6 +89,7 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
         </div>
         <ConnectionHealth projectId={projectId} projectKey={projectKey} canManage={canManage} hasHook={hasHook} lastEventAt={lastEventAt} lastEventType={lastEventType} />
         <IssueSync projectId={projectId} projectKey={projectKey} canManage={canManage} on={issueSync} />
+        <CloseOnDone projectId={projectId} canManage={canManage} on={closeOnDone} />
         </div>
       ) : !canManage ? (
         <p className="text-sm text-muted">A manager or this project's lead can connect a repository.</p>
@@ -144,7 +146,7 @@ function ConnectionHealth({ projectId, projectKey, canManage, hasHook, lastEvent
           <li>Open that card in Ruvano: the branch appears under <b>Development</b>.</li>
           <li>Open a pull request from it: the card moves to review. Merge it: the card moves to done.</li>
         </ol>
-        <p className="mt-2">Branches, commits and PRs only link when they mention a card's key. Cards changed in Ruvano don't change the issue on GitHub.</p>
+        <p className="mt-2">Branches, commits and PRs only link when they mention a card's key. Moving a card to Done closes its GitHub issue, if that's switched on below. Other changes in Ruvano stay in Ruvano.</p>
       </details>
     </div>
   );
@@ -165,6 +167,24 @@ function IssueSync({ projectId, projectKey, canManage, on }: { projectId: string
         </span>
       </label>
       {checked && <FetchGithubButton projectId={projectId} projectKey={projectKey} />}
+    </div>
+  );
+}
+
+/** Moving a card to Done closes the GitHub issue it came from, so the two never disagree. */
+function CloseOnDone({ projectId, canManage, on }: { projectId: string; canManage: boolean; on: boolean }) {
+  const router = useRouter();
+  const [checked, setChecked] = useState(on);
+  const [, start] = useTransition();
+  return (
+    <div className="border-t border-slate-200 px-4 py-3 text-[13px] dark:border-slate-800">
+      <label className="flex items-start gap-2">
+        <input type="checkbox" checked={checked} disabled={!canManage} className="mt-0.5"
+          onChange={(e) => { const next = e.target.checked; setChecked(next); start(async () => { await setGithubCloseOnDone(projectId, next); router.refresh(); }); }} />
+        <span>Close the GitHub issue when its card is done
+          <span className="block text-xs text-muted">Moving the card out of Done reopens it. Uses the GitHub account of whoever moves the card, or the project lead's.</span>
+        </span>
+      </label>
     </div>
   );
 }

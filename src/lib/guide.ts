@@ -59,7 +59,18 @@ export const GUIDE: GuideSection[] = [
           "It also tells you when tasks have nobody on them, so nothing falls through the gap.",
           "Assign a task from the board. Right-click a card, or open it and pick a person.",
         ],
-        keywords: "contribution workload who did what assign split work free rider viva",
+        keywords: "contribution workload who did what assign split work free rider viva report commits",
+      },
+      {
+        id: "student-report", title: "Contribution report for your viva",
+        summary: "A printable record of who finished what, with comments, commits and pull requests.",
+        steps: [
+          "Open the project's **Team** page and click **Contribution report**.",
+          "Click **Print or save as PDF**. Each person's finished tasks are listed with the date they were done.",
+          "Commits and pull requests count for teammates who connected GitHub in Ruvano, matched by their GitHub username.",
+        ],
+        video: "student-report",
+        keywords: "report viva guide pdf print contribution commits evidence",
       },
       {
         id: "student-deadlines", title: "Deadlines and your day",
@@ -230,6 +241,21 @@ export const GUIDE: GuideSection[] = [
         keywords: "live refresh reload update realtime automatic fetch sync",
       },
       {
+        id: "reality", title: "Reality check",
+        summary: "Where the board and the real work disagree, shown above the board so nothing drifts quietly.",
+        steps: [
+          "Open the project's **Board**. If something doesn't match, a **Reality check** bar appears at the top. Click **Review**.",
+          "**Done, but the pull request isn't merged**: the card was moved too early.",
+          "**In progress, but no code activity**: no branch, commit or pull request for longer than the project's stuck limit.",
+          "**Pull request waiting**: no update for 2 days. It may need a reviewer.",
+          "**Shipped without a card**: a pull request merged without mentioning any card. Click **Add as done card** to put it on record, or **Ignore**.",
+          "**Due soon, not started**: due within 2 days and still in To do.",
+        ],
+        result: "Every finding comes from what Ruvano has actually seen: dates, commits and pull requests. Connect GitHub for the code checks.",
+        video: "reality",
+        keywords: "reality check mismatch code commits pull request stale untracked drift honest board",
+      },
+      {
         id: "stuck", title: "Spot stuck work",
         summary: "Ruvano tells you which work is waiting, so problems come up before the sprint ends.",
         steps: [
@@ -301,10 +327,24 @@ export const GUIDE: GuideSection[] = [
           "Open the project's **Standup**.",
           "Click **Run standup**: it shows one person at a time with a 2-minute timer.",
           "Use `→` or **Space** for the next person, `←` to go back, **End** to finish. **Shuffle order** changes who goes first.",
+          "Type what each person says in their **Notes** box, and tick **Needs help to move forward** for blockers. Notes save by themselves.",
+          "Click **Copy summary** and paste it in Slack, Teams, WhatsApp or email. Nobody has to write minutes.",
         ],
         result: "Blocked work is listed first, so the meeting spends its time on what needs help.",
         video: "standup",
-        keywords: "standup daily scrum meeting timer presenter",
+        keywords: "standup daily scrum meeting timer presenter notes summary minutes blocker",
+      },
+      {
+        id: "status-link", title: "Share status outside the team",
+        summary: "A read-only page for managers, clients or your guide: what shipped this week, what's in progress, what's stuck.",
+        steps: [
+          "Open the project's **Standup** and click **Share status**, then **Create link**. Managers and the project lead can do this.",
+          "Copy the link and send it. It opens without a login and can't change anything.",
+          "Click **New link** to stop the old one working, or **Turn off** to stop sharing.",
+        ],
+        result: "It updates live from the board, so there's no weekly report to write.",
+        video: "status-link",
+        keywords: "status report share link stakeholder client manager weekly update read only public",
       },
       {
         id: "roadmap", title: "Roadmap",
@@ -383,7 +423,7 @@ export const GUIDE: GuideSection[] = [
           "Mention a card's key in a branch name, commit or PR title, for example `wr-12-fix-login`. Right-click a card and choose **Copy git branch command** to get a correctly named branch.",
           "To check it's working, click **Test connection** on the same page. **Your work** also shows each connected repository and when Ruvano last heard from it.",
         ],
-        result: "Opening a PR moves the card to review; merging moves it to done. Changes go one way: moving a card in Ruvano doesn't change the issue on GitHub. On a public repository anyone can open an issue, so you can turn issues off on the same page.",
+        result: "Opening a PR moves the card to review; merging moves it to done. Moving a card to Done closes its GitHub issue, and moving it back reopens it (switch this off on the same page). Other edits stay in Ruvano. On a public repository anyone can open an issue, so you can turn issues off on the same page.",
         keywords: "github git pull request pr branch commit webhook automation connect oauth repository status working test",
       },
       {

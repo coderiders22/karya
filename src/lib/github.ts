@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import type { DevKind } from "@prisma/client";
 import { db } from "./db";
 import { notify, watcherIds } from "./notify";
+import { syncIssueStateToGithub } from "./githubWrite";
 
 export function verifySignature(body: string, header: string | null, secret: string) {
   if (!header?.startsWith("sha256=")) return false;
@@ -54,4 +55,5 @@ export async function autoTransition(issue: Issue, target: "review" | "done", re
   });
   await notify({ actorId: actor.id, issueId: issue.id, kind: "STATUS_CHANGED", userIds: await watcherIds(issue.id),
     message: `${issue.key} moved to ${next.name} automatically: ${reason}` });
+  if (next.category === "DONE") await syncIssueStateToGithub(issue.id, true, actor.id);
 }

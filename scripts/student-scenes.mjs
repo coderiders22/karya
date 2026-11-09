@@ -209,13 +209,20 @@ export const SCENES = [
   },
   {
     id: "who", caption: step(10, "See who's doing what"),
-    text: "The Team page shows who's doing what. To do, doing, and done. So there are no surprises, right before the viva.",
+    text: "The Team page shows who's doing what. And the contribution report puts it on paper, with finished tasks and commits, ready to print for the viva.",
     async run(page, h) {
       await h.click(page.locator('[data-tour="project-nav"]').getByRole("link", { name: "Team" }));
       await page.getByText("Who's doing what").waitFor();
       await h.wait(600);
-      await h.moveTo(page.locator("tr").filter({ hasText: "Rohan Verma" })); await h.wait(1000);
-      await h.moveTo(page.locator("tr").filter({ hasText: "Neha Iyer" })); await h.wait(1000);
+      await h.moveTo(page.locator("tr").filter({ hasText: "Rohan Verma" })); await h.wait(900);
+      await h.click(page.getByRole("link", { name: "Contribution report" }));
+      await page.getByText("Finished tasks").waitFor();
+      await h.caption(step(10, "See who's doing what"));
+      await h.wait(1800);
+      await h.moveTo(page.getByRole("button", { name: /Print or save as PDF/ })); await h.wait(1000);
+      await h.click(page.getByRole("link", { name: "Back" }));
+      await page.getByText("Who's doing what").waitFor();
+      await h.caption(step(10, "See who's doing what"));
     },
   },
   {

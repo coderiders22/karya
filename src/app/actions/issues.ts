@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { IssueType, Priority } from "@prisma/client";
 import { db } from "@/lib/db";
+import { syncIssueStateToGithub } from "@/lib/githubWrite";
 import { issueInWorkspace, personOnProject, projectInWorkspace, requireEditor, requireUser } from "@/lib/auth";
 import { canManageProject, visibleProjects } from "@/lib/permissions";
 import { ISSUE_TYPES, PRIORITIES } from "@/lib/constants";
@@ -207,6 +208,8 @@ export async function updateIssueField(issueId: string, field: Field, raw: strin
       message: `${user.name} assigned ${issue.key} to you: ${issue.title}` });
   }
   if (field === "statusId") {
+    const wasDone = issue.status.category === "DONE", nowDone = (data as { resolvedAt: Date | null }).resolvedAt !== null;
+    if (wasDone !== nowDone) await syncIssueStateToGithub(issueId, nowDone, user.id);
     await notify({ actorId: user.id, issueId, kind: "STATUS_CHANGED", userIds: await watcherIds(issueId),
       message: `${user.name} moved ${issue.key} from ${from} to ${to}` });
   }
@@ -249,6 +252,7 @@ export async function moveIssueOnBoard(issueId: string, statusId: string, ordere
     }),
   ]);
   if (issue.statusId !== statusId) {
+    if ((issue.status.category === "DONE") !== (status.category === "DONE")) await syncIssueStateToGithub(issueId, status.category === "DONE", user.id);
     await notify({ actorId: user.id, issueId, kind: "STATUS_CHANGED", userIds: await watcherIds(issueId),
       message: `${user.name} moved ${issue.key} from ${issue.status.name} to ${status.name}` });
   }

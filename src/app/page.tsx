@@ -1,17 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, BriefcaseBusiness, Check, Coffee, Gauge, GitPullRequest, GraduationCap, Hourglass, Keyboard, ArrowLeftRight, TextCursorInput } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Check, Coffee, Gauge, GitPullRequest, GraduationCap, Hourglass, ArrowLeftRight, ScanSearch, TextCursorInput } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
 import { HeroSwitch } from "@/components/HeroSwitch";
 
 const FEATURES = [
   { icon: GitPullRequest, title: "GitHub moves the work", body: "New GitHub issues become cards. Open a pull request that mentions WR-12 and the card moves to review. Merge it and it's done. Commits and branches show up on the issue." },
-  { icon: Coffee, title: "Standup, already written", body: "Each person's finished, in-progress, blocked and next work, pulled from the tracker. Run it with a timer, one person at a time." },
+  { icon: Coffee, title: "Standup, already written", body: "Each person's finished, in-progress, blocked and next work, pulled from the tracker. Add notes as people talk, then copy a ready summary for chat or email." },
   { icon: Gauge, title: "Sprint forecast", body: "Compares time used with work done and tells you mid-sprint how much won't land, while there's still time to cut scope." },
   { icon: Hourglass, title: "Stuck work surfaces", body: "Cards show how long they've sat in a column. Anything past your threshold, blocked or over a WIP limit is flagged on the board and your home page." },
   { icon: TextCursorInput, title: "Write it in one line", body: "Type “Checkout fails on Safari bug @sam !high #payments due:fri 3pts” and the fields fill themselves in." },
-  { icon: Keyboard, title: "Keyboard first", body: "⌘K to jump anywhere, C to create, M to assign to yourself, G then B for the board. Press ? to see them all." },
+  { icon: ScanSearch, title: "Reality check", body: "Checks the board against your code: cards marked done with open pull requests, work in progress with no commits, and merged work nobody tracked." },
 ];
 
 const COMPARE: [string, true | string, string][] = [
@@ -19,6 +19,7 @@ const COMPARE: [string, true | string, string][] = [
   ["Where your data lives", "Hosted here, or your own server", "Vendor cloud"],
   ["Pull request moves the card", true, "Set up with rules or add-ons"],
   ["Standup written from the tracker", true, "Usually an add-on"],
+  ["Board checked against your code", true, "Not usually offered"],
   ["Mid-sprint forecast", true, "Varies by tool and plan"],
   ["Time-in-status and stuck work flags", true, "Varies by tool and plan"],
   ["Student mode: templates, deadlines, join links", true, "Not usually offered"],

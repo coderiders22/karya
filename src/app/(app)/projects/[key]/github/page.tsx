@@ -28,6 +28,7 @@ export default async function GithubPage({ params, searchParams }: { params: Pro
         lastEventType={project.githubLastEventType}
         hasHook={!!project.githubHookId}
         issueSync={project.githubIssueSync}
+        closeOnDone={project.githubCloseOnDone}
       />
     </main>
   );

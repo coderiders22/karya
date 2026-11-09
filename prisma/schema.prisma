@@ -97,6 +97,7 @@ model User {
   attachments   Attachment[]
   resets        PasswordReset[]
   github        GithubAccount?
+  standupNotes  StandupNote[] @relation("noteAbout")
 
   @@index([workspaceId])
 }
@@ -162,6 +163,10 @@ model Project {
   /// New GitHub issues become cards. Off for repositories where anyone can open issues and that's too noisy.
   githubIssueSync      Boolean  @default(true)
   githubIssuesSyncedAt DateTime?
+  /// Moving a card to Done closes its GitHub issue, and moving it back reopens it.
+  githubCloseOnDone    Boolean  @default(true)
+  /// Secret part of the read-only status link people can share outside the team. Null when off.
+  statusToken  String?  @unique
   /// Student projects: which template it started from, when it's due, and the link teammates join with.
   template     String?
   dueAt        DateTime?
@@ -173,6 +178,8 @@ model Project {
   issues       Issue[]
   sprints      Sprint[]
   members      ProjectMember[]
+  untracked    UntrackedWork[]
+  standupNotes StandupNote[]
 
   @@unique([workspaceId, key])
 }
@@ -403,3 +410,34 @@ model GithubAccount {
   updatedAt DateTime @updatedAt
 }
 
+
+/// A pull request merged on GitHub that mentioned no card: work that happened outside the tracker.
+/// Reality Check lists it until someone makes a card for it or dismisses it.
+model UntrackedWork {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  externalId String
+  title      String
+  url        String
+  author     String   @default("")
+  mergedAt   DateTime @default(now())
+  dismissed  Boolean  @default(false)
+
+  @@unique([projectId, externalId])
+}
+
+/// What someone said in standup, beyond what the tracker already shows. One per person per day.
+model StandupNote {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("noteAbout", fields: [userId], references: [id], onDelete: Cascade)
+  day       String
+  text      String   @default("")
+  blocker   Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, userId, day])
+}
