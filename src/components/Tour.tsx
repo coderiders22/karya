@@ -67,7 +67,7 @@ function steps(id: TourId, name: string, mode: UserMode): Step[] {
     },
     {
       target: "project-nav", title: "Inside a project",
-      body: <><b>Board</b> to move work along, <b>Backlog</b> to plan sprints, <b>Standup</b> to run the daily meeting, <b>Roadmap</b> for epics on a timeline, <b>Insights</b> for charts and bottlenecks, <b>Settings</b> for columns, GitHub and Jira export.</>,
+      body: <><b>Board</b> to move work along, <b>Backlog</b> to plan sprints, <b>Standup</b> to run the daily meeting, <b>Roadmap</b> for epics on a timeline, <b>Insights</b> for charts and bottlenecks, <b>GitHub</b> to connect your repository, <b>Settings</b> for columns and Jira export.</>,
     },
     {
       target: "projects", title: "Projects",
@@ -110,6 +110,10 @@ function steps(id: TourId, name: string, mode: UserMode): Step[] {
     {
       target: "board-filters", title: "Narrow the board",
       body: <>Filter by text, by person (click the avatars), or by type. <b>Stuck only</b> shows blocked work and anything in progress for too long, so standups can focus on what needs help.</>,
+    },
+    {
+      target: "github", title: "Connect GitHub",
+      body: <>Connect your repository here. New GitHub issues become cards on this board, and cards move when pull requests open and merge. The board stays <b>Live</b>, so changes show up by themselves.</>,
     },
     {
       target: "forecast", title: "Sprint forecast",

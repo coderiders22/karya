@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { autoTransition, findIssues, recordDev, verifySignature } from "@/lib/github";
 import { db } from "@/lib/db";
 import { githubWebhookSecret, openToken } from "@/lib/githubOAuth";
+import { syncGithubIssue } from "@/lib/githubIssues";
 
 type Commit = { id: string; message: string; url: string; author?: { name?: string; username?: string } };
 
@@ -9,7 +10,7 @@ type Commit = { id: string; message: string; url: string; author?: { name?: stri
  * GitHub webhook. Added automatically by "Connect GitHub" in project settings, or by hand in the repo:
  *   Settings → Webhooks → Payload URL: <APP_URL>/api/integrations/github, Content type: application/json,
  *   Secret: GITHUB_WEBHOOK_SECRET (or the derived one shown in project settings),
- *   Events: Pushes, Pull requests, Branch or tag creation.
+ *   Events: Pushes, Pull requests, Branch or tag creation, Issues.
  */
 export async function POST(req: Request) {
   const body = await req.text();
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
   // Only projects connected to this repository, and only if GitHub signed with that project's secret.
   // The signature is what proves the delivery is genuine; the repository name in the body proves nothing.
   const signature = req.headers.get("x-hub-signature-256");
-  const connected = await db.project.findMany({ where: { githubRepo: { equals: repo, mode: "insensitive" } }, select: { id: true, githubSecret: true } });
+  const connected = await db.project.findMany({ where: { githubRepo: { equals: repo, mode: "insensitive" } }, select: { id: true, githubSecret: true, githubIssueSync: true } });
   const shared = githubWebhookSecret();
   const verified = connected.filter((c) => {
     const secret = c.githubSecret ? openToken(c.githubSecret) : shared; // older connections used the shared secret
@@ -35,6 +36,12 @@ export async function POST(req: Request) {
   let linked = 0;
 
   if (event === "ping") return NextResponse.json({ ok: true, message: "Karya is listening" });
+
+  if (event === "issues" && p.issue && !["deleted", "transferred"].includes(p.action)) {
+    for (const project of verified) {
+      if (project.githubIssueSync) await syncGithubIssue(project.id, p.issue, { action: p.action, announce: true });
+    }
+  }
 
   if (event === "push") {
     const branch = String(p.ref ?? "").replace("refs/heads/", "");

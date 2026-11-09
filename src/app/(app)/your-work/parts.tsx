@@ -10,7 +10,7 @@ const ago = (date: Date) => {
   const unit = AGO.find(([size]) => seconds >= size);
   return unit ? `${Math.floor(seconds / unit[0])}${unit[1]} ago` : "just now";
 };
-const EVENT: Record<string, string> = { ping: "Test ping", push: "Push", pull_request: "Pull request", create: "New branch" };
+const EVENT: Record<string, string> = { ping: "Test ping", push: "Push", pull_request: "Pull request", create: "New branch", issues: "Issue" };
 
 /** Whether GitHub is really connected, and when Karya last heard from it. */
 export function GithubStatus({ projects, me, offerConnect = true }: {
@@ -26,7 +26,7 @@ export function GithubStatus({ projects, me, offerConnect = true }: {
       <h2 className="section-title mb-2 flex items-center gap-1.5"><Github size={14} />GitHub</h2>
       <div className="card divide-y divide-slate-100 dark:divide-slate-800">
         {connected.map((p) => (
-          <Link key={p.id} href={`/projects/${p.key}/settings`} className="block px-3 py-2.5 text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800/40">
+          <Link key={p.id} href={`/projects/${p.key}/github`} className="block px-3 py-2.5 text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800/40">
             <span className="block truncate font-medium">{p.githubRepo}</span>
             {p.githubLastEventAt ? (
               <span className="mt-0.5 flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400"><CircleCheck size={12} className="shrink-0" />Connected · {EVENT[p.githubLastEventType ?? ""] ?? "Event"} {ago(p.githubLastEventAt)}</span>
@@ -36,9 +36,9 @@ export function GithubStatus({ projects, me, offerConnect = true }: {
           </Link>
         ))}
         {connected.length === 0 && canConnect && (
-          <Link href={`/projects/${canConnect.key}/settings`} className="block px-3 py-2.5 text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800/40">
+          <Link href={`/projects/${canConnect.key}/github`} className="block px-3 py-2.5 text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800/40">
             <span className="font-medium text-brand">Connect a repository</span>
-            <span className="mt-0.5 block text-xs text-muted">Pull requests then move issues on their own.</span>
+            <span className="mt-0.5 block text-xs text-muted">New GitHub issues become cards, and pull requests move them on their own.</span>
           </Link>
         )}
       </div>

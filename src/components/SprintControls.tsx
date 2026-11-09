@@ -74,7 +74,13 @@ export function SprintHeaderActions({
       {editing && (
         <Modal onClose={() => setEditing(false)}>
           <h2 className="mb-4 text-base font-semibold">Edit sprint</h2>
-          <form action={(f) => run(async () => { await updateSprint(sprint.id, f); setEditing(false); })} className="space-y-3">
+          <form onSubmit={(e) => {
+            // Not a form action: this form closes itself when saving ends, and React waits for a form
+            // action's own pending state, which left the page showing old data for up to 20 seconds.
+            e.preventDefault();
+            const f = new FormData(e.currentTarget);
+            run(async () => { await updateSprint(sprint.id, f); setEditing(false); });
+          }} className="space-y-3">
             <label className="block"><span className="label">Name</span><input name="name" defaultValue={sprint.name} className="input mt-1" /></label>
             <label className="block"><span className="label">Goal</span><textarea name="goal" defaultValue={sprint.goal} rows={2} className="input mt-1" /></label>
             <label className="block"><span className="label">End date</span><input name="endDate" type="date" defaultValue={sprint.endDate?.slice(0, 10)} className="input mt-1" /></label>

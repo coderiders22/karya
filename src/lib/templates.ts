@@ -30,7 +30,7 @@ export const TEMPLATES: Template[] = [
       { title: "Write the synopsis", at: 0.1, note: "Problem statement, objectives, scope, proposed method and tools." },
       { title: "Literature survey", at: 0.2, note: "Read existing work, note what it misses, and keep the references for your report." },
       { title: "Requirements and design", at: 0.3, note: "SRS, architecture and database design." },
-      { title: "Set up the repository and split the work", at: 0.35, note: "Connect GitHub in project settings, and assign each module to someone." },
+      { title: "Set up the repository and split the work", at: 0.35, note: "Connect the repo from GitHub in the project menu, and assign each module to someone." },
       { title: "Mid-term review and demo", at: 0.5, priority: "HIGH", note: "Show what works so far and note your guide's feedback here." },
       { title: "Finish building the core features", at: 0.7 },
       { title: "Test and fix bugs", at: 0.8 },
@@ -58,7 +58,7 @@ export const TEMPLATES: Template[] = [
     tasks: [
       { title: "Register the team and read the rules", at: 0.02, priority: "HIGH", note: "Check team size, what's allowed, judging criteria and what you must submit." },
       { title: "Pick the problem statement and lock the idea", at: 0.1, priority: "HIGH" },
-      { title: "Split the work and set up the repository", at: 0.15, note: "Connect GitHub in project settings so cards move as you push." },
+      { title: "Split the work and set up the repository", at: 0.15, note: "Connect the repo from GitHub in the project menu. GitHub issues then become cards, and cards move as you open and merge pull requests." },
       { title: "Build a working demo", at: 0.65, note: "One flow that works end to end beats five half-done features." },
       { title: "Deploy it so judges can open it", at: 0.75 },
       { title: "Make the pitch deck", at: 0.85, note: "Problem, solution, demo, tech used, impact, team." },

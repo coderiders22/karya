@@ -7,6 +7,7 @@ export const overlay = () => {
   try {
     localStorage.setItem("karya:tour:welcome", "done");
     localStorage.setItem("karya:tour:board", "done");
+    localStorage.setItem("karya:github-prompt:WR", "dismissed");
     sessionStorage.setItem("karya:booted", "1");
     sessionStorage.setItem("karya:greeted", "1");
   } catch {}

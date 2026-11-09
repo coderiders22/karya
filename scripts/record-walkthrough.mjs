@@ -11,6 +11,10 @@
 //
 // Output: public/guide/videos/walkthrough.mp4 (+ .jpg poster, .vtt captions)
 //
+// The student video: node scripts/record-walkthrough.mjs --student
+// Run it on an empty database, with DATABASE_URL and AUTH_SECRET set. See scripts/student-scenes.mjs.
+// Output: public/guide/videos/student-walkthrough.mp4 (+ .jpg, .vtt)
+//
 // Each scene's narration is spoken with macOS `say` first, so we know how long it is; the scene
 // then lasts at least that long while its actions run. Afterwards the clips are laid on the
 // recording at each scene's start time and everything is encoded as H.264 + AAC.
@@ -27,10 +31,12 @@ const arg = (name, dflt) => process.argv.find((a) => a.startsWith(`--${name}=`))
 const VOICE = arg("voice", "Tara");
 const RATE = arg("rate", "172");
 const AUDIO_ONLY = process.argv.includes("--audio-only");
+const STUDENT = process.argv.includes("--student");
+const NAME = STUDENT ? "student-walkthrough" : "walkthrough";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
 const OUT = path.resolve("public/guide/videos");
-const TMP = path.resolve(".video-tmp-walkthrough");
+const TMP = path.resolve(STUDENT ? ".video-tmp-student" : ".video-tmp-walkthrough");
 const SIZE = { width: 1280, height: 800 };
 mkdirSync(OUT, { recursive: true });
 mkdirSync(TMP, { recursive: true });
@@ -42,7 +48,7 @@ const P = "Mobile App";
  * The story. `say` is what the voice reads (spelled for speech where needed); `text` is the
  * written version for the captions file.
  */
-const SCENES = [
+const TEAM_SCENES = [
   {
     id: "intro", caption: "Karya · the full walkthrough",
     text: "Welcome to Karya. In the next few minutes, we'll set up a brand new project, and use everything your team will need, day to day.",
@@ -111,7 +117,10 @@ const SCENES = [
       await h.type("/bu", 110); await h.wait(700); await page.keyboard.press("Enter");
       await h.wait(400); await h.click(add); await h.wait(1300);
       await h.type("Add the app icon @aa", 65); await h.wait(700); await page.keyboard.press("Enter");
-      await h.wait(400); await h.click(add); await h.wait(1300);
+      await h.wait(400); await h.click(add);
+      // The new card pushes the form down: wait for it, or the click lands on the card.
+      await page.getByRole("link", { name: "Add the app icon" }).waitFor();
+      await h.wait(900);
       await h.click(page.getByRole("button", { name: "Cancel" }));
     },
   },
@@ -146,10 +155,13 @@ const SCENES = [
     id: "start", caption: step(6, "Start the sprint"),
     text: "When the plan looks right, start the sprint. The board now shows only this sprint, with a live forecast at the top, so you know early if work won't land.",
     async run(page, h) {
-      const start = page.getByRole("button", { name: "Start sprint" });
+      // Stays disabled for a moment after the last issue moves into the sprint.
+      const start = page.getByRole("button", { name: "Start sprint", disabled: false });
+      await start.waitFor();
       await start.scrollIntoViewIfNeeded();
       await h.click(start);
-      await h.wait(1600);
+      await page.getByRole("button", { name: "Start sprint" }).waitFor({ state: "detached" });
+      await h.wait(800);
       await h.click(page.locator('[data-tour="project-nav"]').getByRole("link", { name: "Board" }));
       const forecast = page.locator('[data-tour="forecast"]');
       await forecast.waitFor();
@@ -159,7 +171,7 @@ const SCENES = [
   },
   {
     id: "move", caption: step(7, "Drag cards as work moves"),
-    text: "As work moves, drag the cards across the columns. Every card shows how long it has been in its column, so anything stuck stands out.",
+    text: "As work moves, drag the cards across the columns. Every card shows how long it has been in its column, so anything stuck stands out. The board is live, so your team's changes show up by themselves.",
     async run(page, h) {
       const cols = page.locator('[data-tour="board-columns"] > div');
       await h.drag(page.getByRole("link", { name: "Sign up with email" }), cols.nth(1));
@@ -252,12 +264,24 @@ const SCENES = [
     },
   },
   {
-    id: "settings", caption: step(13, "Settings: columns, GitHub, Jira"),
-    text: "In project settings, you can set work in progress limits on columns, connect GitHub, so pull requests move issues by themselves, and export the whole project to Jira at any time.",
-    say: "In project settings, you can set work in progress limits on columns, connect GitHub, so pull requests move issues by themselves, and export the whole project to Jira, at any time.",
+    id: "github", caption: step(13, "Connect GitHub"),
+    text: "Click GitHub in the project menu to connect your repository. New GitHub issues become cards on the board, and cards move by themselves when pull requests open and merge.",
     async run(page, h) {
       await h.click(page.getByRole("link", { name: P }).last());
-      await page.locator('[data-tour="project-nav"]').waitFor();
+      await page.locator('[data-tour="github"]').waitFor();
+      await h.click(page.locator('[data-tour="github"]'));
+      const connect = page.getByRole("link", { name: "Connect GitHub" }).last();
+      await connect.waitFor();
+      await h.wait(700);
+      await h.moveTo(connect);
+      await h.wait(900);
+    },
+  },
+  {
+    id: "settings", caption: step(14, "Settings: columns and Jira"),
+    text: "In project settings, you can set work in progress limits on columns, and export the whole project to Jira at any time.",
+    say: "In project settings, you can set work in progress limits on columns, and export the whole project to Jira, at any time.",
+    async run(page, h) {
       await h.click(page.locator('[data-tour="project-nav"]').getByRole("link", { name: "Settings" }));
       await page.getByText("Board columns").first().waitFor();
       await h.wait(900);
@@ -267,8 +291,9 @@ const SCENES = [
     },
   },
   {
-    id: "invite", caption: step(14, "Invite your team"),
-    text: "Finally, invite your team. Type an email, choose member or admin, and create a link to share on Slack or WhatsApp. Only people you invite can get in.",
+    id: "invite", caption: step(15, "Invite your team"),
+    text: "Finally, invite your team. Type an email, choose a role, from viewer to admin, and create a link to share on Slack or WhatsApp. Only people you invite can get in.",
+    say: "Finally, invite your team. Type an email, choose a role, from viewer to admin, and create a link to share on Slack, or WhatsApp. Only people you invite can get in.",
     async run(page, h) {
       await h.click(page.locator('[data-tour="team"]'));
       const email = page.getByPlaceholder(/Email/);
@@ -276,6 +301,10 @@ const SCENES = [
       await h.wait(500);
       await h.click(email); await h.type("priya@yourcompany.com", 55);
       await h.wait(400);
+      const role = page.locator("select[name=role]");
+      await h.moveTo(role); await h.wait(500);
+      await role.selectOption("MANAGER");
+      await h.wait(800);
       await h.click(page.getByRole("button", { name: "Create invite link" }));
       await h.wait(1600);
     },
@@ -290,6 +319,8 @@ const SCENES = [
     },
   },
 ];
+
+const SCENES = STUDENT ? (await import("./student-scenes.mjs")).SCENES : TEAM_SCENES;
 
 /** Speak one line with macOS `say`; returns the file and its length in seconds. */
 function speak(scene, voice) {
@@ -312,8 +343,9 @@ async function record() {
   for (const s of SCENES) Object.assign(s, speak(s, VOICE));
   console.log(`Narration (${VOICE}): ${SCENES.reduce((t, s) => t + s.dur, 0).toFixed(0)}s across ${SCENES.length} scenes`);
 
-  const [email, password] = readFileSync(".dev-credentials", "utf8").split("\n").find((l) => l.startsWith("ADMIN")).trim().split(/\s+/).slice(1);
   const browser = await chromium.launch();
+  if (!STUDENT) {
+  const [email, password] = readFileSync(".dev-credentials", "utf8").split("\n").find((l) => l.startsWith("ADMIN")).trim().split(/\s+/).slice(1);
   const login = await browser.newContext({ viewport: SIZE });
   const lp = await login.newPage();
   await lp.goto(`${BASE}/login`);
@@ -327,10 +359,11 @@ async function record() {
   }
   await login.storageState({ path: path.join(TMP, "state.json") });
   await login.close();
+  }
 
   const ctx = await browser.newContext({
     viewport: SIZE, deviceScaleFactor: 1, colorScheme: "light",
-    storageState: path.join(TMP, "state.json"),
+    ...(STUDENT ? {} : { storageState: path.join(TMP, "state.json") }),
     recordVideo: { dir: TMP, size: SIZE },
   });
   await ctx.addInitScript(overlay);
@@ -341,8 +374,8 @@ async function record() {
   const page = await ctx.newPage();
   const t0 = Date.now();
   const h = helpers(page, OUT);
-  await page.goto(`${BASE}/your-work`);
-  await page.locator('[data-tour="projects"]').waitFor();
+  await page.goto(`${BASE}${STUDENT ? "/signup?as=student" : "/your-work"}`);
+  await page.locator(STUDENT ? "input[name=name]" : '[data-tour="projects"]').waitFor();
 
   const timeline = [];
   let failed = null;
@@ -353,7 +386,7 @@ async function record() {
     await h.caption(s.caption);
     const minEnd = Date.now() + s.dur * 1000 + 700;
     try {
-      await s.run(page, h);
+      await s.run(page, h, { browser });
     } catch (e) {
       failed = `${s.id}: ${e.message.split("\n")[0]}`;
       console.error(`✗ scene ${failed}`);
@@ -368,7 +401,7 @@ async function record() {
   const end = Date.now() - t0;
   const video = page.video();
   await ctx.close();
-  const raw = path.join(TMP, "walkthrough-raw.webm");
+  const raw = path.join(TMP, `${NAME}-raw.webm`);
   await video.saveAs(raw);
   await video.delete();
   await browser.close();
@@ -399,7 +432,7 @@ async function narrate() {
     return { ...t, file, dur: dur / tempo, tempo, at: t.start - trim };
   });
 
-  const out = path.join(OUT, "walkthrough.mp4");
+  const out = path.join(OUT, `${NAME}.mp4`);
   const inputs = ["-ss", (trim / 1000).toFixed(3), "-i", raw, ...clips.flatMap((c) => ["-i", c.file])];
   const parts = clips.map((c, i) =>
     `[${i + 1}:a]aresample=48000,${c.tempo > 1 ? `atempo=${c.tempo.toFixed(3)},` : ""}adelay=delays=${Math.round(c.at)}:all=1[a${i}]`);
@@ -417,7 +450,7 @@ async function narrate() {
   ], { stdio: "inherit" });
 
   // The poster is a plain screenshot: paint over the marker there too.
-  const poster = path.join(OUT, "walkthrough.jpg");
+  const poster = path.join(OUT, `${NAME}.jpg`);
   if (existsSync(poster)) {
     const tmp = path.join(TMP, "poster.jpg");
     execFileSync(FFMPEG, ["-y", "-hide_banner", "-loglevel", "error", "-i", poster, "-vf", "drawbox=x=0:y=ih-8:w=8:h=8:color=0x1a1a18:t=fill", "-q:v", "3", tmp]);
@@ -427,11 +460,12 @@ async function narrate() {
   // Captions file with the spoken words, for people watching without sound.
   const ts = (ms) => new Date(Math.max(0, ms)).toISOString().slice(11, 23);
   const vtt = ["WEBVTT", "", ...clips.flatMap((c, i) => [`${i + 1}`, `${ts(c.at)} --> ${ts(c.at + c.dur * 1000)}`, c.text, ""])].join("\n");
-  writeFileSync(path.join(OUT, "walkthrough.vtt"), vtt);
+  writeFileSync(path.join(OUT, `${NAME}.vtt`), vtt);
 
   const secs = (end - trim) / 1000;
-  console.log(`✓ walkthrough.mp4: ${Math.floor(secs / 60)}:${String(Math.round(secs % 60)).padStart(2, "0")}, voice ${VOICE}${clips.some((c) => c.tempo > 1) ? " (some lines sped up slightly to fit)" : ""}`);
+  console.log(`✓ ${NAME}.mp4: ${Math.floor(secs / 60)}:${String(Math.round(secs % 60)).padStart(2, "0")}, voice ${VOICE}${clips.some((c) => c.tempo > 1) ? " (some lines sped up slightly to fit)" : ""}`);
 }
 
 if (!AUDIO_ONLY) await record();
 await narrate();
+if (STUDENT) await (await import("./student-scenes.mjs")).closeStudentDb();

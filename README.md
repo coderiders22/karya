@@ -30,6 +30,10 @@
 - Teammates join a project with one link, even from other colleges, and a project's Team page shows who's doing what
 - A live countdown to every deadline, and all your tasks across projects in one list
 
+**GitHub**
+- Connect a repo in one click from the project's menu. New GitHub issues become cards, and pull requests move them
+- Boards update by themselves as your team and GitHub make changes, with a manual fetch button too
+
 **Team & data**
 - Free sign-up: every team or student gets a private workspace of their own
 - Forgot password: people request a link, and the site owner creates and emails it from an owner-only page

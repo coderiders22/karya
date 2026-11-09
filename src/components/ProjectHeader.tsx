@@ -9,7 +9,7 @@ import { useAccess } from "./Access";
 import { Countdown } from "./LocalTime";
 
 const SECTION: Record<string, string> = {
-  board: "Board", team: "Team", backlog: "Backlog", standup: "Standup", roadmap: "Roadmap", issues: "Issues", reports: "Insights", settings: "Settings",
+  board: "Board", team: "Team", github: "GitHub", backlog: "Backlog", standup: "Standup", roadmap: "Roadmap", issues: "Issues", reports: "Insights", settings: "Settings",
 };
 
 export function ProjectHeader({ project, actions }: { project: { key: string; name: string; color: string; dueAt?: string | null; deadlineLabel?: string }; actions?: React.ReactNode }) {
@@ -24,7 +24,7 @@ export function ProjectHeader({ project, actions }: { project: { key: string; na
       <div className="flex-1" />
       {project.dueAt && <Countdown iso={project.dueAt} label={project.deadlineLabel} />}
       {actions}
-      {canEdit && seg !== "settings" && (
+      {canEdit && seg !== "settings" && seg !== "github" && (
         // Opens the full create form for this project. From the board, the new issue goes into the running sprint.
         <button onClick={() => openCreateIssue()} data-tip="New issue  C" aria-label="New issue"
           className="btn-primary !h-7 !px-2 text-xs sm:!px-2.5">

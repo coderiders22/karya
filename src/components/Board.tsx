@@ -1,6 +1,7 @@
 "use client";
 
 import { useAccess } from "./Access";
+import { BoardSync } from "./BoardSync";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,7 @@ function group(issues: CardIssue[], statuses: StatusLite[]): Columns {
   return cols;
 }
 
-export function Board({ issues, statuses, users, meId, projectId, sprintId, staleDays }: { issues: CardIssue[]; statuses: StatusLite[]; users: UserLite[]; meId: string; projectId: string; sprintId?: string; staleDays: number }) {
+export function Board({ issues, statuses, users, meId, projectId, projectKey, canFetchGithub, sprintId, staleDays }: { projectKey: string; canFetchGithub: boolean; issues: CardIssue[]; statuses: StatusLite[]; users: UserLite[]; meId: string; projectId: string; sprintId?: string; staleDays: number }) {
   const router = useRouter();
   const [, start] = useTransition();
   const [cols, setCols] = useState<Columns>(() => group(issues, statuses));
@@ -175,6 +176,7 @@ export function Board({ issues, statuses, users, meId, projectId, sprintId, stal
         {(q || people.length > 0 || types.length > 0 || onlyStuck) && (
           <button className="btn-ghost text-xs" onClick={() => { setQ(""); setPeople([]); setTypes([]); setOnlyStuck(false); }}>Clear</button>
         )}
+        <BoardSync projectId={projectId} projectKey={projectKey} paused={activeId !== null} canFetch={canFetchGithub} />
       </div>
       <div data-peek-scope>
       <DndContext id={`board-${projectId}`} sensors={canEdit ? sensors : []} collisionDetection={dropWherePointerIs} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}>

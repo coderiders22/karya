@@ -6,7 +6,8 @@ import { loadCards } from "@/lib/cards";
 import { forecastSprint } from "@/lib/forecast";
 import { Board } from "@/components/Board";
 import { CompleteSprintButton } from "@/components/SprintControls";
-import { canManageProject, projectPeople } from "@/lib/permissions";
+import { canEdit, canManageProject, projectPeople } from "@/lib/permissions";
+import { GithubPrompt } from "@/components/BoardSync";
 import { SprintForecast } from "@/components/SprintForecast";
 
 export default async function BoardPage({ params }: { params: Promise<{ key: string }> }) {
@@ -30,7 +31,7 @@ export default async function BoardPage({ params }: { params: Promise<{ key: str
 
   return (
     <main>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-200 px-4 py-3 sm:px-6 dark:border-slate-800">
+      {(active || me.mode !== "STUDENT") && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-200 px-4 py-3 sm:px-6 dark:border-slate-800">
         {active ? (
           <>
             <div className="min-w-0">
@@ -46,9 +47,11 @@ export default async function BoardPage({ params }: { params: Promise<{ key: str
             <Link className="font-medium text-slate-900 underline underline-offset-2 dark:text-white" href={`/projects/${project.key}/backlog`}>backlog</Link> to get a forecast.
           </p>
         )}
-      </div>
+      </div>}
       <div className="p-4 pt-3 sm:p-6 sm:pt-4">
-        <Board issues={issues} statuses={project.statuses} users={users} meId={me.id} projectId={project.id} sprintId={active?.id} staleDays={project.staleDays} />
+        {!project.githubRepo && canManageProject(me, project) && <GithubPrompt projectKey={project.key} />}
+        <Board issues={issues} statuses={project.statuses} users={users} meId={me.id} projectId={project.id} projectKey={project.key}
+          canFetchGithub={!!project.githubRepo && project.githubIssueSync && canEdit(me.role)} sprintId={active?.id} staleDays={project.staleDays} />
       </div>
     </main>
   );

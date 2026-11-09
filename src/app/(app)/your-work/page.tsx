@@ -49,7 +49,7 @@ export default async function YourWork() {
       { id: "invite", title: "Invite your team", detail: "Send an invite link and choose what each person can do.", href: "/settings/members", cta: "Invite", done: people > 1 || invites > 0 },
       { id: "issues", title: "Add your first five issues", detail: "Press C anywhere, or import a Jira CSV.", href: first ? `/projects/${first}/backlog` : "/projects", cta: "Add issues", done: issues >= 5 },
       { id: "sprint", title: "Start a sprint", detail: "Unlocks the forecast, burndown and standup.", href: first ? `/projects/${first}/backlog` : "/projects", cta: "Plan", done: sprints > 0 },
-      { id: "github", title: "Connect GitHub", detail: "Pull requests then move issues on their own.", href: first ? `/projects/${first}/settings` : "/projects", cta: "Connect", done: projects.some((p) => p.githubRepo) },
+      { id: "github", title: "Connect GitHub", detail: "New GitHub issues become cards, and pull requests move them on their own.", href: first ? `/projects/${first}/github` : "/projects", cta: "Connect", done: projects.some((p) => p.githubRepo) },
     ];
   }
 

@@ -230,11 +230,11 @@ const VIDEOS = {
     await page.goto(`${BASE}/settings/members`);
     await page.getByRole("button", { name: "Create invite link" }).waitFor();
     await h.wait(700);
-    await h.caption("Karya has no public sign-up. Admins <b>invite people with a link</b>.", 2200);
+    await h.caption("Your workspace is private. Admins <b>invite people with a link</b>.", 2200);
     await h.click(page.getByPlaceholder(/Email/));
     await h.type("priya@yourcompany.com", 55);
     await h.wait(500);
-    await h.caption("Choose <b>Member</b> or <b>Admin</b>, then create the link.", 1400);
+    await h.caption("Choose a role, from <b>Viewer</b> to <b>Admin</b>, then create the link.", 1400);
     await h.click(page.getByRole("button", { name: "Create invite link" }));
     await h.wait(1400);
     await h.poster("invite");

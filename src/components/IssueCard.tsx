@@ -1,6 +1,6 @@
 import Link from "next/link";
 import clsx from "clsx";
-import { Ban, CalendarClock, Hourglass } from "lucide-react";
+import { Ban, CalendarClock, Github, Hourglass } from "lucide-react";
 import type { CardIssue } from "@/lib/types";
 import { Avatar, IssueKey, PriorityIcon, TypeIcon, LabelChip } from "./IssueBits";
 
@@ -49,6 +49,7 @@ export function IssueCard({ issue, dragging, staleDays = 3 }: { issue: CardIssue
             <Hourglass size={11} />{age === 0 ? "today" : `${age}d`}
           </span>
         )}
+        {issue.githubNumber != null && <span className="inline-flex items-center gap-1" title={`From GitHub issue #${issue.githubNumber}`}><Github size={11} />#{issue.githubNumber}</span>}
         {issue.dueDate && (
           <span className={clsx("inline-flex items-center gap-1", overdue && "font-medium text-rose-600 dark:text-rose-400")}>
             <CalendarClock size={11} />{new Date(issue.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}

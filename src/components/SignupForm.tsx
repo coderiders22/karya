@@ -11,9 +11,9 @@ const MODES = [
 ] as const;
 
 /** Sign-up: choosing how you'll use Karya decides which home screen and tools you get. */
-export function SignupForm({ join, teamName }: { join?: string; teamName?: string }) {
+export function SignupForm({ join, teamName, student }: { join?: string; teamName?: string; student?: boolean }) {
   const [state, action, pending] = useActionState(signUp, undefined);
-  const [mode, setMode] = useState<(typeof MODES)[number]["id"]>(join ? "STUDENT" : "PROFESSIONAL");
+  const [mode, setMode] = useState<(typeof MODES)[number]["id"]>(join || student ? "STUDENT" : "PROFESSIONAL");
   return (
     <form className="space-y-4" onSubmit={(e) => {
       // Handled here so that a mistake (an email already in use, say) doesn't clear everything typed.

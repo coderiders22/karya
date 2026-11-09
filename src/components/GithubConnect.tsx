@@ -4,7 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Activity, Check, CircleAlert, CircleCheck, ExternalLink, Github, Loader2, Lock, Search } from "lucide-react";
 import { toast } from "sonner";
-import { checkGithubConnection, connectGithubRepo, disconnectGithubRepo, forgetGithubAccount, linkRepoByHand, listGithubRepos } from "@/app/actions/github";
+import { checkGithubConnection, connectGithubRepo, disconnectGithubRepo, forgetGithubAccount, linkRepoByHand, listGithubRepos, setGithubIssueSync } from "@/app/actions/github";
+import { FetchGithubButton, pullGithubIssues } from "./BoardSync";
 import { confirmDialog } from "./Dialog";
 import { timeAgo } from "./NotificationBell";
 
@@ -20,6 +21,7 @@ type Props = {
   lastEventAt: string | null;
   lastEventType: string | null;
   hasHook: boolean;
+  issueSync: boolean;
 };
 
 const MESSAGES: Record<string, string> = {
@@ -30,8 +32,8 @@ const MESSAGES: Record<string, string> = {
   "not-configured": "One-click GitHub isn't set up on this server yet.",
 };
 
-/** Project settings → GitHub: connect a repository in a few clicks, see what's connected, disconnect. */
-export function GithubConnect({ projectId, projectKey, configured, repo, login, status, automation, canManage, lastEventAt, lastEventType, hasHook }: Props) {
+/** A project's GitHub page: connect a repository in a few clicks, see that it's working, disconnect. */
+export function GithubConnect({ projectId, projectKey, configured, repo, login, status, automation, canManage, lastEventAt, lastEventType, hasHook, issueSync }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -39,7 +41,7 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
   useEffect(() => {
     if (!status || !MESSAGES[status]) return;
     (status === "authorised" ? toast.success : toast.error)(MESSAGES[status]);
-    history.replaceState(null, "", location.pathname + "#github");
+    history.replaceState(null, "", location.pathname);
   }, [status]);
 
   const connectHref = `/api/github/connect?project=${encodeURIComponent(projectKey)}`;
@@ -52,10 +54,13 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
           {repo ? "Connected" : "Not connected"}
         </span>
       </div>
-      <p className="mb-4 text-sm text-muted">
-        Mention an issue key (for example <code className="font-mono">{projectKey}-12</code>) in a branch name, commit message or pull request title.
-        Karya links it to the issue{automation ? ", moves it to review when the PR opens, and to done when it merges" : ""}.
-      </p>
+      <ul className="mb-4 space-y-1 text-sm text-muted">
+        <li>New GitHub issues appear as cards on the board, and closing one on GitHub closes its card.</li>
+        <li>
+          Mention a key like <code className="font-mono">{projectKey}-12</code> in a branch, commit or pull request and it links to that card
+          {automation ? ", which moves to review when the PR opens and to done when it merges" : ""}.
+        </li>
+      </ul>
 
       {repo ? (
         <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
@@ -65,12 +70,12 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
             <a href={`https://github.com/${repo}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium hover:underline">
               {repo}<ExternalLink size={12} className="text-slate-400" />
             </a>
-            <div className="text-xs text-muted">Pushes, branches and pull requests are sent to Karya.</div>
+            <div className="text-xs text-muted">Issues, pushes, branches and pull requests are sent to Karya.</div>
           </div>
           {canManage && <button className="btn" disabled={pending} onClick={async () => {
             const ok = await confirmDialog({
               title: `Disconnect ${repo}?`,
-              message: "Karya removes its webhook from the repository. Links already on issues stay.",
+              message: "Karya removes its webhook from the repository. Cards and links already on the board stay.",
               confirmLabel: "Disconnect", danger: true,
             });
             if (!ok) return;
@@ -82,13 +87,14 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
           }}>Disconnect</button>}
         </div>
         <ConnectionHealth projectId={projectId} projectKey={projectKey} canManage={canManage} hasHook={hasHook} lastEventAt={lastEventAt} lastEventType={lastEventType} />
+        <IssueSync projectId={projectId} projectKey={projectKey} canManage={canManage} on={issueSync} />
         </div>
       ) : !canManage ? (
         <p className="text-sm text-muted">A manager or this project's lead can connect a repository.</p>
       ) : !configured ? (
         <ManualSetup projectId={projectId} />
       ) : login ? (
-        <RepoPicker projectId={projectId} login={login} connectHref={connectHref} />
+        <RepoPicker projectId={projectId} projectKey={projectKey} login={login} connectHref={connectHref} />
       ) : (
         <>
           <a href={connectHref} className="btn-primary !h-9 !px-3.5"><Github size={16} />Connect GitHub</a>
@@ -108,7 +114,7 @@ function ConnectionHealth({ projectId, projectKey, canManage, hasHook, lastEvent
   const router = useRouter();
   const [checking, start] = useTransition();
   const [result, setResult] = useState<{ state: "ok" | "failing" | "unknown"; message: string }>();
-  const LABEL: Record<string, string> = { ping: "test ping", push: "push", pull_request: "pull request", create: "new branch" };
+  const LABEL: Record<string, string> = { ping: "test ping", push: "push", pull_request: "pull request", create: "new branch", issues: "issue" };
   return (
     <div className="space-y-3 border-t border-slate-200 px-4 py-3 text-[13px] dark:border-slate-800">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -133,12 +139,32 @@ function ConnectionHealth({ projectId, projectKey, canManage, hasHook, lastEvent
       <details className="text-muted">
         <summary className="cursor-pointer hover:text-slate-900 dark:hover:text-white">How to see it work</summary>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
-          <li>Create a branch named after an issue, for example <code className="font-mono">{projectKey.toLowerCase()}-1-fix-login</code>, and push it.</li>
-          <li>Open that issue in Karya: the branch appears under <b>Development</b>.</li>
-          <li>Open a pull request from it: the issue moves to review. Merge it: the issue moves to done.</li>
+          <li>Open a new issue on GitHub: a card appears on the board within seconds.</li>
+          <li>Create a branch named after a card, for example <code className="font-mono">{projectKey.toLowerCase()}-1-fix-login</code>, and push it.</li>
+          <li>Open that card in Karya: the branch appears under <b>Development</b>.</li>
+          <li>Open a pull request from it: the card moves to review. Merge it: the card moves to done.</li>
         </ol>
-        <p className="mt-2">Work is only linked when the branch, commit or PR mentions an issue key. New issues on GitHub don't create cards.</p>
+        <p className="mt-2">Branches, commits and PRs only link when they mention a card's key. Cards changed in Karya don't change the issue on GitHub.</p>
       </details>
+    </div>
+  );
+}
+
+/** On by default. Anyone who can open an issue on the repository can add a card, which on a public repository means anyone. */
+function IssueSync({ projectId, projectKey, canManage, on }: { projectId: string; projectKey: string; canManage: boolean; on: boolean }) {
+  const router = useRouter();
+  const [checked, setChecked] = useState(on);
+  const [, start] = useTransition();
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-slate-200 px-4 py-3 text-[13px] dark:border-slate-800">
+      <label className="flex min-w-0 flex-1 basis-64 items-start gap-2">
+        <input type="checkbox" checked={checked} disabled={!canManage} className="mt-0.5"
+          onChange={(e) => { const next = e.target.checked; setChecked(next); start(async () => { await setGithubIssueSync(projectId, next); router.refresh(); }); }} />
+        <span>Add GitHub issues to the board
+          <span className="block text-xs text-muted">Anyone who can open an issue on this repository can add a card. On a public repository, that's anyone.</span>
+        </span>
+      </label>
+      {checked && <FetchGithubButton projectId={projectId} projectKey={projectKey} />}
     </div>
   );
 }
@@ -158,7 +184,7 @@ function ManualSetup({ projectId }: { projectId: string }) {
           <div><dt className="inline text-muted">Payload URL: </dt><dd className="inline select-all break-all font-mono text-[12px]">{made.url}</dd></div>
           <div><dt className="inline text-muted">Content type: </dt><dd className="inline font-mono text-[12px]">application/json</dd></div>
           <div><dt className="inline text-muted">Secret: </dt><dd className="inline select-all break-all font-mono text-[12px]">{made.secret}</dd></div>
-          <div><dt className="inline text-muted">Events: </dt><dd className="inline">Pushes, Pull requests, Branch or tag creation</dd></div>
+          <div><dt className="inline text-muted">Events: </dt><dd className="inline">Issues, Pushes, Pull requests, Branch or tag creation</dd></div>
         </dl>
         <p className="text-xs text-muted">Copy the secret now: it isn't shown again.</p>
         <button className="btn" onClick={() => router.refresh()}>Done</button>
@@ -181,7 +207,7 @@ function ManualSetup({ projectId }: { projectId: string }) {
   );
 }
 
-function RepoPicker({ projectId, login, connectHref }: { projectId: string; login: string; connectHref: string }) {
+function RepoPicker({ projectId, projectKey, login, connectHref }: { projectId: string; projectKey: string; login: string; connectHref: string }) {
   const router = useRouter();
   const [repos, setRepos] = useState<{ name: string; private: boolean; pushedAt: string | null }[] | null>(null);
   const [error, setError] = useState<string>();
@@ -242,6 +268,8 @@ function RepoPicker({ projectId, login, connectHref }: { projectId: string; logi
                   setBusy(r.name);
                   start(async () => {
                     const res = await connectGithubRepo(projectId, r.name);
+                    // Bring the repository's open issues over straight away, so the board isn't empty until the next one is opened.
+                    if (!res.error) await pullGithubIssues(projectId, projectKey).catch(() => {});
                     setBusy(null);
                     if (res.error) return void toast.error(res.error);
                     toast.success(`Connected ${r.name}`);

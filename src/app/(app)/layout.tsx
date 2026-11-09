@@ -17,7 +17,7 @@ import { visibleProjects } from "@/lib/permissions";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const [projects, users, filters, labelColors] = await Promise.all([
-    db.project.findMany({ where: visibleProjects(user), select: { id: true, key: true, name: true, color: true }, orderBy: { name: "asc" } }),
+    db.project.findMany({ where: visibleProjects(user), select: { id: true, key: true, name: true, color: true, githubRepo: true }, orderBy: { name: "asc" } }),
     db.user.findMany({ where: peopleIWorkWith(user), select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.savedFilter.findMany({
       where: { OR: [{ ownerId: user.id }, { shared: true, owner: { workspaceId: user.workspaceId } }] },

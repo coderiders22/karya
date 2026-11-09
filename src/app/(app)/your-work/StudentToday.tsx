@@ -107,7 +107,7 @@ export async function StudentToday({ me }: { me: CurrentUser }) {
                 <li><Link href="/projects" className="block px-3 py-2.5 text-[13px] text-brand hover:bg-slate-50 dark:hover:bg-slate-800/40">Start another project</Link></li>
               </ul>
             </section>
-            <GithubStatus projects={projects} me={me} offerConnect={false} />
+            <GithubStatus projects={projects} me={me} />
             <ActivityFeed items={activity} />
           </aside>
         </div>

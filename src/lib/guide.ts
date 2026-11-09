@@ -67,7 +67,7 @@ export const GUIDE: GuideSection[] = [
         steps: [
           "Each project shows a countdown at the top of its pages. Change the deadline in the project's **Settings**.",
           "**Today** lists every deadline, then your tasks across all projects, soonest first.",
-          "Connect GitHub in **Settings** and cards move as you push code: handy when a hackathon leaves no time to update a board.",
+          "Click **GitHub** in the project's menu to connect your repository. GitHub issues then become cards, and cards move as you open and merge pull requests: handy when a hackathon leaves no time to update a board.",
         ],
         keywords: "deadline countdown today due date overdue submission github",
       },
@@ -220,6 +220,16 @@ export const GUIDE: GuideSection[] = [
         keywords: "kanban drag drop status column card",
       },
       {
+        id: "live-board", title: "The board updates by itself",
+        summary: "Leave it open: what your team and GitHub change shows up without reloading.",
+        steps: [
+          "The green **Live** mark at the top of the board means it's watching for changes, every few seconds.",
+          "To get the latest right now, click **Refresh**. If the project is connected to GitHub, the button is **Fetch from GitHub**.",
+        ],
+        result: "It only checks while the tab is open and you're using it, so an idle tab costs nothing.",
+        keywords: "live refresh reload update realtime automatic fetch sync",
+      },
+      {
         id: "stuck", title: "Spot stuck work",
         summary: "Karya tells you which work is waiting, so problems come up before the sprint ends.",
         steps: [
@@ -368,12 +378,12 @@ export const GUIDE: GuideSection[] = [
         id: "github", title: "Connect GitHub",
         summary: "Branches, commits and pull requests show up on the issue, and statuses move by themselves.",
         steps: [
-          "In project **Settings → GitHub**, click **Connect GitHub**, allow Karya on GitHub, then pick the repository. Karya adds its webhook by itself (you need admin rights on the repository).",
-          "Mention the issue key in a branch name, commit or PR title, for example `wr-12-fix-login`.",
-          "Right-click a card and choose **Copy git branch command** to get a correctly named branch.",
-          "To check it's working, click **Test connection** in the same place. **Your work** also shows each connected repository and when Karya last heard from it.",
+          "Open a project and click **GitHub** in its menu. Click **Connect GitHub**, allow Karya on GitHub, then pick the repository. Karya adds its webhook by itself (you need admin rights on the repository), and brings over the open issues.",
+          "New issues on GitHub now appear as cards on the board within seconds. Closing one on GitHub closes its card, and reopening it brings the card back. **Fetch from GitHub** on the board gets them right away.",
+          "Mention a card's key in a branch name, commit or PR title, for example `wr-12-fix-login`. Right-click a card and choose **Copy git branch command** to get a correctly named branch.",
+          "To check it's working, click **Test connection** on the same page. **Your work** also shows each connected repository and when Karya last heard from it.",
         ],
-        result: "Opening a PR moves the issue to review; merging moves it to done. New issues on GitHub don't create cards. **Disconnect** in the same place removes the webhook again.",
+        result: "Opening a PR moves the card to review; merging moves it to done. Changes go one way: moving a card in Karya doesn't change the issue on GitHub. On a public repository anyone can open an issue, so you can turn issues off on the same page.",
         keywords: "github git pull request pr branch commit webhook automation connect oauth repository status working test",
       },
       {

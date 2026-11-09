@@ -4,6 +4,7 @@ export type CardIssue = {
   id: string;
   projectId: string;
   key: string;
+  githubNumber: number | null;
   title: string;
   type: IssueType;
   priority: Priority;

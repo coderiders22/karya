@@ -1,17 +1,15 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { getProjectByKey } from "@/lib/project";
 import { JIRA_DATE_FORMAT } from "@/lib/jiraCsv";
 import { StatusEditor } from "@/components/StatusEditor";
 import { ProjectDetailsForm } from "@/components/ProjectDetailsForm";
-import { GithubConnect } from "@/components/GithubConnect";
-import { githubOAuthConfigured, openToken } from "@/lib/githubOAuth";
 import { templateById } from "@/lib/templates";
 import { canManageProject, projectPeople } from "@/lib/permissions";
 
-export default async function SettingsPage({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export default async function SettingsPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
-  const sp = await searchParams;
   const me = await requireUser();
   const project = await getProjectByKey(key);
   const [counts, users, total] = await Promise.all([
@@ -21,10 +19,6 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   ]);
   const canManage = canManageProject(me, project);
   const countBy = Object.fromEntries(counts.map((c) => [c.statusId, c._count]));
-  // Only counts as connected if the stored token still opens (AUTH_SECRET unchanged).
-  const gh = await db.githubAccount.findUnique({ where: { userId: me.id } });
-  const ghLogin = gh && openToken(gh.token) ? gh.login : null;
-
   return (
     <main className="max-w-3xl space-y-5 p-4 sm:p-6">
       <section className="card p-5">
@@ -53,19 +47,13 @@ export default async function SettingsPage({ params, searchParams }: { params: P
         </details>
       </section>
 
-      <GithubConnect
-        projectId={project.id}
-        projectKey={project.key}
-        configured={githubOAuthConfigured()}
-        repo={project.githubRepo}
-        login={ghLogin}
-        status={typeof sp.github === "string" ? sp.github : null}
-        automation={project.gitAutomation}
-        canManage={canManage}
-        lastEventAt={project.githubLastEventAt?.toISOString() ?? null}
-        lastEventType={project.githubLastEventType}
-        hasHook={!!project.githubHookId}
-      />
+      <section className="card flex flex-wrap items-center gap-3 p-5">
+        <div className="min-w-0 flex-1 basis-56">
+          <h2 className="section-title mb-1">GitHub</h2>
+          <p className="text-sm text-muted">{project.githubRepo ? <>Connected to <b className="font-medium text-slate-900 dark:text-white">{project.githubRepo}</b>.</> : "Not connected."}</p>
+        </div>
+        <Link href={`/projects/${project.key}/github`} className="btn">{project.githubRepo ? "Open GitHub page" : "Connect GitHub"}</Link>
+      </section>
 
       <section className="card p-5">
         <h2 className="section-title mb-1">Board columns</h2>

@@ -5,8 +5,9 @@ const PUBLIC = ["/login", "/signup", "/forgot", "/join/", "/register", "/setup",
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  // The landing page plays the walkthrough with the sound off, so those files stay public.
-  if (pathname === "/" || pathname.startsWith("/icon") || pathname.startsWith("/guide/videos/walkthrough.") || PUBLIC.some((p) => pathname.startsWith(p))) return NextResponse.next();
+  // The landing page plays these walkthroughs to people who aren't logged in, so they stay public.
+  const heroVideo = pathname.startsWith("/guide/videos/walkthrough.") || pathname.startsWith("/guide/videos/student-walkthrough.");
+  if (pathname === "/" || pathname.startsWith("/icon") || heroVideo || PUBLIC.some((p) => pathname.startsWith(p))) return NextResponse.next();
   const userId = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!userId) {
     if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

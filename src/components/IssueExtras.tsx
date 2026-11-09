@@ -141,11 +141,16 @@ export function LinkedIssues({ issueId, links }: { issueId: string; links: L[] }
       {adding && (
         <form
           className="mb-3 flex flex-wrap gap-2"
-          action={(f) => start(async () => {
-            const r = await addLink(issueId, String(f.get("relation")), String(f.get("key")));
-            setError(r.error);
-            if (!r.error) { setAdding(false); router.refresh(); }
-          })}
+          onSubmit={(e) => {
+            // Not a form action: see the note on the sprint form in SprintControls.
+            e.preventDefault();
+            const f = new FormData(e.currentTarget);
+            start(async () => {
+              const r = await addLink(issueId, String(f.get("relation")), String(f.get("key")));
+              setError(r.error);
+              if (!r.error) { setAdding(false); router.refresh(); }
+            });
+          }}
         >
           <select name="relation" className="select w-40">
             {Object.keys(LINK_RELATIONS).map((r) => <option key={r}>{r}</option>)}

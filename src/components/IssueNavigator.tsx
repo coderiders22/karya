@@ -150,7 +150,12 @@ function SaveFilter({ query, projectId }: { query: string; projectId: string | n
   if (!open) return <button className="btn" onClick={() => setOpen(true)}><Bookmark size={14} />Save view</button>;
   return (
     <form className="flex items-center gap-2"
-      action={(f) => start(async () => { await saveFilter(String(f.get("name")), query, projectId, f.get("shared") === "on"); setOpen(false); router.refresh(); })}>
+      onSubmit={(e) => {
+        // Not a form action: see the note on the sprint form in SprintControls.
+        e.preventDefault();
+        const f = new FormData(e.currentTarget);
+        start(async () => { await saveFilter(String(f.get("name")), query, projectId, f.get("shared") === "on"); setOpen(false); router.refresh(); });
+      }}>
       <input name="name" required autoFocus placeholder="Filter name" className="input !w-44 !py-1" />
       <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="shared" /> Share with team</label>
       <button className="btn-primary !py-1 text-xs" disabled={pending}>Save</button>

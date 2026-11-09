@@ -6,14 +6,14 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import {
   Home, FolderKanban, Search, Users, KanbanSquare, ListTodo, GanttChartSquare, Rows3, BarChart3, Settings2,
-  Bookmark, Menu, Plus, Coffee, BookOpen, KeyRound,
+  Bookmark, Menu, Plus, Coffee, BookOpen, KeyRound, Github,
 } from "lucide-react";
 import { useAccess } from "./Access";
 import { Logo } from "./Logo";
 import { NotificationBell } from "./NotificationBell";
 import { openCreateIssue } from "./CreateIssueDialog";
 
-type P = { id: string; key: string; name: string; color: string };
+type P = { id: string; key: string; name: string; color: string; githubRepo?: string | null };
 type F = { id: string; name: string; href: string };
 type Icon = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
 
@@ -145,6 +145,7 @@ export function Sidebar({ projects, filters, user, workspace, passwordRequests }
               <NavLink href={`/projects/${current.key}/roadmap`} icon={GanttChartSquare}>Roadmap</NavLink>
               <NavLink href={`/projects/${current.key}/issues`} icon={Rows3}>Issues</NavLink>
               <NavLink href={`/projects/${current.key}/reports`} icon={BarChart3}>Insights</NavLink>
+              <NavLink href={`/projects/${current.key}/github`} icon={Github} tour="github" badge={current.githubRepo ? undefined : "Connect"}>GitHub</NavLink>
               <NavLink href={`/projects/${current.key}/settings`} icon={Settings2}>Settings</NavLink>
             </Section>
           )}

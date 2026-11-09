@@ -159,6 +159,9 @@ model Project {
   /// The last delivery GitHub made, so people can see the connection is alive.
   githubLastEventAt   DateTime?
   githubLastEventType String?
+  /// New GitHub issues become cards. Off for repositories where anyone can open issues and that's too noisy.
+  githubIssueSync      Boolean  @default(true)
+  githubIssuesSyncedAt DateTime?
   /// Student projects: which template it started from, when it's due, and the link teammates join with.
   template     String?
   dueAt        DateTime?
@@ -250,8 +253,12 @@ model Issue {
   linksIn     IssueLink[]    @relation("linkTo")
   notifications Notification[]
   devActivity DevActivity[]
+  /// Set when this card came from a GitHub issue: its number there, and what its title and text last were.
+  githubNumber   Int?
+  githubSeenHash String?
 
   @@unique([projectId, number])
+  @@unique([projectId, githubNumber])
   @@index([key])
   @@index([projectId, statusId])
 }
@@ -316,6 +323,7 @@ enum NotificationKind {
   STATUS_CHANGED
   TEAM_JOINED
   PASSWORD_REQUEST
+  GITHUB_ISSUE
 }
 
 model Notification {
@@ -351,6 +359,7 @@ enum DevKind {
   BRANCH
   COMMIT
   PULL_REQUEST
+  ISSUE
 }
 
 /// Branches, commits and pull requests from GitHub that mention an issue key.

@@ -53,7 +53,8 @@ export class GithubError extends Error {
 
 /** Calls the GitHub REST API as the connected person. */
 export async function gh<T = unknown>(token: string, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  const res = await fetch(`https://api.github.com${path}`, {
+  // GITHUB_API_URL is for GitHub Enterprise servers, and for testing without calling GitHub.
+  const res = await fetch(`${process.env.GITHUB_API_URL ?? "https://api.github.com"}${path}`, {
     method: init.method ?? "GET",
     headers: {
       Accept: "application/vnd.github+json",

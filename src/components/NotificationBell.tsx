@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AtSign, Bell, CircleDot, KeyRound, MessageSquare, UserPlus, Users, Volume2, VolumeX } from "lucide-react";
+import { AtSign, Bell, CircleDot, Github, KeyRound, MessageSquare, UserPlus, Users, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { markNotificationsRead } from "@/app/actions/notifications";
 import type { InboxData } from "@/lib/notify";
@@ -11,8 +11,8 @@ import { playChime, setSoundEnabled, soundEnabled, unlockAudioOnInteraction } fr
 
 type Data = InboxData;
 type Item = Data["items"][number];
-const ICON = { ASSIGNED: UserPlus, MENTIONED: AtSign, COMMENTED: MessageSquare, STATUS_CHANGED: CircleDot, TEAM_JOINED: Users, PASSWORD_REQUEST: KeyRound } as const;
-const TITLE = { ASSIGNED: "Assigned to you", MENTIONED: "You were mentioned", COMMENTED: "New comment", STATUS_CHANGED: "Status changed", TEAM_JOINED: "New teammate", PASSWORD_REQUEST: "Password request" } as const;
+const ICON = { ASSIGNED: UserPlus, MENTIONED: AtSign, COMMENTED: MessageSquare, STATUS_CHANGED: CircleDot, TEAM_JOINED: Users, PASSWORD_REQUEST: KeyRound, GITHUB_ISSUE: Github } as const;
+const TITLE = { ASSIGNED: "Assigned to you", MENTIONED: "You were mentioned", COMMENTED: "New comment", STATUS_CHANGED: "Status changed", TEAM_JOINED: "New teammate", PASSWORD_REQUEST: "Password request", GITHUB_ISSUE: "New GitHub issue" } as const;
 
 /** Check for news every 20s, but only while the tab is visible and someone is using it.
  *  Hidden or idle tabs make no requests, so the free database can sleep. */

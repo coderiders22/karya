@@ -9,6 +9,7 @@ import type { CardIssue } from "@/lib/types";
 import { Avatar, IssueKey, PriorityIcon, StatusPill, TypeIcon } from "@/components/IssueBits";
 import { CreateSprintButton, MoveToSprint } from "@/components/BacklogClient";
 import { SprintHeaderActions } from "@/components/SprintControls";
+import { LiveRefresh } from "@/components/BoardSync";
 import { canEdit, canManageProject, projectPeople } from "@/lib/permissions";
 import { QuickAdd } from "@/components/QuickAdd";
 
@@ -36,6 +37,7 @@ export default async function BacklogPage({ params }: { params: Promise<{ key: s
 
   return (
     <main data-peek-scope className="max-w-5xl space-y-4 p-4 sm:p-6">
+      <LiveRefresh projectKey={project.key} />
       {sprints.map((s) => {
         const list = issues.filter((i) => i.sprintId === s.id);
         const points = list.reduce((n, i) => n + (i.storyPoints ?? 0), 0);

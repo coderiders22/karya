@@ -7,7 +7,7 @@ import { Volume2, VolumeX } from "lucide-react";
  * Landing product glimpse. The whole app plays inside a window, sound off,
  * with the sound control in the window bar so it never covers the product.
  */
-export function HeroWalkthrough() {
+export function HeroWalkthrough({ video: name = "walkthrough" }: { video?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [sound, setSound] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
@@ -84,12 +84,12 @@ export function HeroWalkthrough() {
             loop
             playsInline
             preload="auto"
-            poster="/guide/videos/walkthrough.jpg"
+            poster={`/guide/videos/${name}.jpg`}
             className="block aspect-[16/10] h-auto w-full bg-white object-contain"
             aria-label="Karya, the whole product, playing with the sound off"
           >
-            <source src="/guide/videos/walkthrough.mp4" type="video/mp4" />
-            <track kind="captions" src="/guide/videos/walkthrough.vtt" srcLang="en" label="English" />
+            <source src={`/guide/videos/${name}.mp4`} type="video/mp4" />
+            <track kind="captions" src={`/guide/videos/${name}.vtt`} srcLang="en" label="English" />
           </video>
           {needsTap && (
             <button

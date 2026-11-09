@@ -10,10 +10,10 @@ import { GITHUB_SCOPES, githubCallbackUrl, githubOAuthConfigured } from "@/lib/g
  */
 export async function GET(req: Request) {
   const project = (new URL(req.url).searchParams.get("project") ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const back = `${appUrl()}/projects/${project}/settings`;
+  const back = `${appUrl()}/projects/${project}/github`;
   if (!(await getCurrentUser())) return NextResponse.redirect(`${appUrl()}/login`);
   if (!project) return NextResponse.redirect(`${appUrl()}/projects`);
-  if (!githubOAuthConfigured()) return NextResponse.redirect(`${back}?github=not-configured#github`);
+  if (!githubOAuthConfigured()) return NextResponse.redirect(`${back}?github=not-configured`);
 
   const state = randomBytes(18).toString("base64url");
   const url = new URL("https://github.com/login/oauth/authorize");

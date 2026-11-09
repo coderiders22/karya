@@ -9,7 +9,7 @@ import { exchangeCode, gh, githubOAuthConfigured, sealToken } from "@/lib/github
 /**
  * Step 2 of "Connect GitHub": GitHub sends the person back here with a one-time code.
  * Check the state, swap the code for a token, store it encrypted, and return to the
- * project's settings where they pick a repository.
+ * project's GitHub page where they pick a repository.
  */
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   const saved = jar.get("karya_gh_state")?.value ?? "";
   const [state, project = ""] = saved.split(".");
   const back = (status: string) => {
-    const res = NextResponse.redirect(`${appUrl()}/${project ? `projects/${project}/settings` : "projects"}?github=${status}#github`);
+    const res = NextResponse.redirect(`${appUrl()}/${project ? `projects/${project}/github` : "projects"}?github=${status}`);
     res.cookies.delete({ name: "karya_gh_state", path: "/api/github" });
     return res;
   };

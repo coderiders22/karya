@@ -1,10 +1,10 @@
 "use client";
 
 import clsx from "clsx";
-import { GitBranch, GitCommitHorizontal, GitMerge, GitPullRequest, GitPullRequestClosed, GitPullRequestDraft, Copy } from "lucide-react";
+import { CircleDot, CircleCheck, GitBranch, GitCommitHorizontal, GitMerge, GitPullRequest, GitPullRequestClosed, GitPullRequestDraft, Copy } from "lucide-react";
 import { toast } from "sonner";
 
-type Dev = { id: string; kind: "BRANCH" | "COMMIT" | "PULL_REQUEST"; title: string; url: string; state: string; author: string; repo: string; externalId: string };
+type Dev = { id: string; kind: "BRANCH" | "COMMIT" | "PULL_REQUEST" | "ISSUE"; title: string; url: string; state: string; author: string; repo: string; externalId: string };
 
 const PR_ICON = { merged: GitMerge, closed: GitPullRequestClosed, draft: GitPullRequestDraft, open: GitPullRequest } as const;
 const PR_TONE = {
@@ -16,6 +16,7 @@ const PR_TONE = {
 
 export function DevPanel({ issueKey, title, items }: { issueKey: string; title: string; items: Dev[] }) {
   const branch = `${issueKey.toLowerCase()}-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40)}`;
+  const issues = items.filter((i) => i.kind === "ISSUE");
   const prs = items.filter((i) => i.kind === "PULL_REQUEST");
   const commits = items.filter((i) => i.kind === "COMMIT");
   const branches = items.filter((i) => i.kind === "BRANCH");
@@ -37,6 +38,18 @@ export function DevPanel({ issueKey, title, items }: { issueKey: string; title: 
         <p className="text-xs text-muted">Mention <code className="font-mono">{issueKey}</code> in a branch, commit or PR title and it shows up here.</p>
       ) : (
         <ul className="space-y-1.5 text-[13px]">
+          {issues.map((d) => {
+            const I = d.state === "closed" ? CircleCheck : CircleDot;
+            return (
+              <li key={d.id}>
+                <a href={d.url} target="_blank" rel="noreferrer" className="flex items-start gap-2 hover:underline">
+                  <I size={15} className={clsx("mt-0.5 shrink-0", d.state === "closed" ? "text-violet-600 dark:text-violet-400" : "text-emerald-600 dark:text-emerald-400")} />
+                  <span className="min-w-0 flex-1"><span className="line-clamp-2">GitHub issue #{d.externalId.split("#").pop()}</span>
+                    <span className="block text-[11px] text-muted">{d.state}{d.author && ` · opened by ${d.author}`}</span></span>
+                </a>
+              </li>
+            );
+          })}
           {prs.map((d) => {
             const s = (d.state in PR_ICON ? d.state : "open") as keyof typeof PR_ICON;
             const I = PR_ICON[s];
