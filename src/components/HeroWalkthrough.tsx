@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 
 /**
- * Landing product glimpse. The whole app plays inside a window, sound off,
- * with the sound control in the window bar so it never covers the product.
+ * Landing product glimpse. The whole app plays by itself inside a window, sound off, with the
+ * pause and sound controls in the window bar so they never cover the product.
  */
 export function HeroWalkthrough({ video: name = "walkthrough" }: { video?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const pausedByVisitor = useRef(false);
   const [sound, setSound] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
 
   useEffect(() => {
@@ -19,30 +21,50 @@ export function HeroWalkthrough({ video: name = "walkthrough" }: { video?: strin
       const track = video.textTracks[0];
       if (track) track.mode = "hidden";
     };
+    // A refused play() isn't final. Battery saver blocks it until the first touch anywhere on the
+    // page, and a play() cut off by loading rejects even though the video then starts by itself.
+    const start = () => {
+      if (!video.paused || pausedByVisitor.current) return;
+      video.play().catch((e: DOMException) => { if (e.name === "NotAllowedError") setNeedsTap(true); });
+    };
+    const onPlaying = () => { setNeedsTap(false); setPaused(false); };
+    const onPause = () => setPaused(true);
+    const onVisible = () => { if (!document.hidden) start(); };
+    const gestures = ["pointerdown", "touchend", "keydown"];
+
     hideCaptions();
+    video.muted = true;
     video.textTracks.addEventListener("addtrack", hideCaptions);
     video.addEventListener("loadedmetadata", hideCaptions);
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const stop = () => {
-      video.removeEventListener("loadedmetadata", hideCaptions);
+    video.addEventListener("canplay", start);
+    video.addEventListener("playing", onPlaying);
+    video.addEventListener("pause", onPause);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", start);
+    gestures.forEach((g) => window.addEventListener(g, start, { passive: true }));
+    start();
+    return () => {
       video.textTracks.removeEventListener("addtrack", hideCaptions);
+      video.removeEventListener("loadedmetadata", hideCaptions);
+      video.removeEventListener("canplay", start);
+      video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("pause", onPause);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", start);
+      gestures.forEach((g) => window.removeEventListener(g, start));
     };
-    if (reduced) {
-      video.pause();
-      setNeedsTap(true);
-      return stop;
-    }
-    video.muted = true;
-    hideCaptions();
-    video.play().catch(() => setNeedsTap(true));
-    return stop;
   }, []);
 
-  function play() {
+  function togglePlay() {
     const video = videoRef.current;
     if (!video) return;
-    video.muted = !sound;
-    video.play().then(() => setNeedsTap(false)).catch(() => setNeedsTap(true));
+    if (video.paused) {
+      pausedByVisitor.current = false;
+      video.play().catch(() => setNeedsTap(true));
+    } else {
+      pausedByVisitor.current = true;
+      video.pause();
+    }
   }
 
   function toggleSound() {
@@ -51,7 +73,10 @@ export function HeroWalkthrough({ video: name = "walkthrough" }: { video?: strin
     const next = !sound;
     video.muted = !next;
     setSound(next);
-    if (video.paused) video.play().then(() => setNeedsTap(false)).catch(() => setNeedsTap(true));
+    if (video.paused) {
+      pausedByVisitor.current = false;
+      video.play().catch(() => setNeedsTap(true));
+    }
   }
 
   return (
@@ -66,15 +91,25 @@ export function HeroWalkthrough({ video: name = "walkthrough" }: { video?: strin
             <span className="size-2 rounded-full bg-white/20" />
           </span>
           <span className="text-[11px] font-medium tracking-wide text-white/40">ruvano</span>
-          <button
-            type="button"
-            onClick={toggleSound}
-            aria-pressed={sound}
-            aria-label={sound ? "Turn sound off" : "Turn sound on"}
-            className="ml-auto grid size-7 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            {sound ? <Volume2 size={14} /> : <VolumeX size={14} />}
-          </button>
+          <span className="ml-auto flex items-center">
+            <button
+              type="button"
+              onClick={togglePlay}
+              aria-label={paused ? "Play the video" : "Pause the video"}
+              className="grid size-7 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              {paused ? <Play size={14} /> : <Pause size={14} />}
+            </button>
+            <button
+              type="button"
+              onClick={toggleSound}
+              aria-pressed={sound}
+              aria-label={sound ? "Turn sound off" : "Turn sound on"}
+              className="grid size-7 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              {sound ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            </button>
+          </span>
         </div>
         <div className="relative">
           <video
@@ -94,7 +129,7 @@ export function HeroWalkthrough({ video: name = "walkthrough" }: { video?: strin
           {needsTap && (
             <button
               type="button"
-              onClick={play}
+              onClick={togglePlay}
               className="absolute inset-0 grid place-items-center"
               aria-label="Play the product video with the sound off"
             >
