@@ -14,7 +14,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
     );
   }
   return (
-    <AuthCard title="Join your team on Karya" subtitle="Create your account. It takes about 20 seconds.">
+    <AuthCard title="Join your team on Karya" subtitle="Create your account. It takes about 20 seconds." panel="typing">
       <AuthForm
         action={registerWithInvite}
         submit="Create account"

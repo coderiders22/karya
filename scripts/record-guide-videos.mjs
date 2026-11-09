@@ -252,7 +252,7 @@ const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: SIZE });
   const page = await ctx.newPage();
   await page.goto(`${BASE}/login`);
-  await page.getByPlaceholder("you@company.com").fill(email);
+  await page.getByPlaceholder("you@example.com").fill(email);
   await page.locator('input[type="password"]').fill(password);
   await page.keyboard.press("Enter");
   await page.waitForURL(/your-work/);

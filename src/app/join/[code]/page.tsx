@@ -20,7 +20,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
   ]);
   if (!project) {
     return (
-      <AuthCard title="This link no longer works" subtitle="Your team lead may have replaced it. Ask them for the new one.">
+      <AuthCard title="This link no longer works" subtitle="Your team lead may have replaced it. Ask them for the new one." panel="student">
         <Link href={me ? "/your-work" : "/login"} className="btn-primary !h-10 w-full text-[14px]">{me ? "Go to Today" : "Log in"}</Link>
       </AuthCard>
     );
@@ -35,7 +35,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
     `${people} ${people === 1 ? "person" : "people"} so far`,
   ].filter(Boolean).join(" · ");
   return (
-    <AuthCard title={`Join ${project.name}`} subtitle={subtitle}>
+    <AuthCard title={`Join ${project.name}`} subtitle={subtitle} panel="student">
       {!me ? (
         <div className="space-y-2">
           <Link href={`/signup?join=${code}`} className="btn-primary !h-10 w-full text-[14px]">Create a free account</Link>

@@ -349,7 +349,7 @@ async function record() {
   const login = await browser.newContext({ viewport: SIZE });
   const lp = await login.newPage();
   await lp.goto(`${BASE}/login`);
-  await lp.getByPlaceholder("you@company.com").fill(email);
+  await lp.getByPlaceholder("you@example.com").fill(email);
   await lp.locator('input[type="password"]').fill(password);
   await lp.keyboard.press("Enter");
   await lp.waitForURL(/your-work/);
@@ -366,6 +366,8 @@ async function record() {
     ...(STUDENT ? {} : { storageState: path.join(TMP, "state.json") }),
     recordVideo: { dir: TMP, size: SIZE },
   });
+  // Without this the app's Copy buttons show their "couldn't copy" error in the video.
+  await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: BASE });
   await ctx.addInitScript(overlay);
   // Show the splash screen once, at the very start.
   await ctx.addInitScript(() => {

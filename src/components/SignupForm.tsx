@@ -4,17 +4,20 @@ import { startTransition, useActionState, useState } from "react";
 import { ArrowRight, BriefcaseBusiness, GraduationCap, Loader2 } from "lucide-react";
 import clsx from "clsx";
 import { signUp } from "@/app/actions/auth";
+import { AuthCard } from "./AuthForm";
 
 const MODES = [
-  { id: "PROFESSIONAL", icon: BriefcaseBusiness, title: "A team at work", hint: "Boards, sprints, standups, GitHub, roles" },
+  { id: "PROFESSIONAL", icon: BriefcaseBusiness, title: "A team at work", hint: "Boards, sprints, GitHub, standups, roles" },
   { id: "STUDENT", icon: GraduationCap, title: "I'm a student", hint: "Major and minor projects, hackathons, group work" },
 ] as const;
 
 /** Sign-up: choosing how you'll use Karya decides which home screen and tools you get. */
-export function SignupForm({ join, teamName, student }: { join?: string; teamName?: string; student?: boolean }) {
+export function SignupForm({ join, teamName, student, title, footer }: { join?: string; teamName?: string; student?: boolean; title: string; footer: React.ReactNode }) {
   const [state, action, pending] = useActionState(signUp, undefined);
   const [mode, setMode] = useState<(typeof MODES)[number]["id"]>(join || student ? "STUDENT" : "PROFESSIONAL");
   return (
+    // The side panel follows the choice, so people read about what they just picked.
+    <AuthCard title={title} subtitle="Free, with no limit on people." footer={footer} panel={mode === "STUDENT" ? "student" : "team"}>
     <form className="space-y-4" onSubmit={(e) => {
       // Handled here so that a mistake (an email already in use, say) doesn't clear everything typed.
       e.preventDefault();
@@ -57,6 +60,7 @@ export function SignupForm({ join, teamName, student }: { join?: string; teamNam
         {pending ? <><Loader2 size={15} className="animate-spin" />Creating…</> : <>Create free account<ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" /></>}
       </button>
     </form>
+    </AuthCard>
   );
 }
 

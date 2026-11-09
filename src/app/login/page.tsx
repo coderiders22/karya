@@ -25,7 +25,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         submit="Log in"
         hidden={next ? { next } : undefined}
         fields={[
-          { name: "email", label: "Email", type: "email", autoComplete: "email", placeholder: "you@company.com" },
+          { name: "email", label: "Email", type: "email", autoComplete: "email", placeholder: "you@example.com" },
           { name: "password", label: "Password", type: "password", autoComplete: "current-password", hint: <Link href="/forgot" className="text-[12.5px] text-brand hover:underline">Forgot password?</Link> },
         ]}
       />

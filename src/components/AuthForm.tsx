@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import type { FormState } from "@/app/actions/auth";
 import { Logo } from "./Logo";
+import { MoveDemo, StudentDemo } from "./AuthDemos";
 import { TypingDemo } from "./TypingDemo";
 
 type Field = { name: string; label: string; type?: string; defaultValue?: string; autoComplete?: string; placeholder?: string; hint?: React.ReactNode };
@@ -67,9 +68,32 @@ function FieldInput({ f }: { f: Field }) {
   );
 }
 
-export function AuthCard({ title, subtitle, children, footer, host }: {
-  title: string; subtitle?: string; children: React.ReactNode; footer?: React.ReactNode; host?: string;
+/** What the brand side shows: one real feature, matched to who's reading. */
+const PANELS = {
+  team: {
+    eyebrow: "GitHub and your board",
+    title: "Your board updates itself, so you don't have to.",
+    text: "New GitHub issues become cards. Cards move when pull requests open and merge. Your whole team sees it live.",
+    demo: <MoveDemo />,
+  },
+  student: {
+    eyebrow: "Major projects, minor projects, hackathons",
+    title: "Start with the steps already laid out.",
+    text: "Pick a template, set your deadline, and bring your team in with one link, even from other colleges.",
+    demo: <StudentDemo />,
+  },
+  typing: {
+    eyebrow: "One line, every field",
+    title: "Write issues the way you'd say them out loud.",
+    text: "Karya picks out the person, priority, labels and due date while you type. No forms to click through.",
+    demo: <TypingDemo />,
+  },
+};
+
+export function AuthCard({ title, subtitle, children, footer, host, panel = "team" }: {
+  title: string; subtitle?: string; children: React.ReactNode; footer?: React.ReactNode; host?: string; panel?: keyof typeof PANELS;
 }) {
+  const side = PANELS[panel];
   return (
     <main className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       {/* Brand side: always ink, explains one real feature instead of decorating. */}
@@ -77,14 +101,10 @@ export function AuthCard({ title, subtitle, children, footer, host }: {
         <div className="relative px-10 pt-9"><a href="/" className="inline-block"><Logo /></a></div>
         <div className="relative flex flex-1 flex-col items-center justify-center px-10">
           <div className="w-full max-w-[420px]">
-            <p className="text-[13px] font-medium text-brand-300">One line, every field</p>
-            <h2 className="mt-2 text-[22px] font-semibold leading-snug tracking-tight">
-              Write issues the way you&apos;d say them out loud.
-            </h2>
-            <p className="mt-2 text-[13.5px] leading-relaxed text-slate-400">
-              Karya picks out the person, priority, labels and due date while you type. No forms to click through.
-            </p>
-            <div className="mt-7"><TypingDemo /></div>
+            <p className="text-[13px] font-medium text-brand-300">{side.eyebrow}</p>
+            <h2 className="mt-2 text-[22px] font-semibold leading-snug tracking-tight">{side.title}</h2>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-slate-400">{side.text}</p>
+            <div className="mt-7">{side.demo}</div>
           </div>
         </div>
         <div className="relative flex items-center justify-between px-10 pb-8 text-xs text-slate-500">
