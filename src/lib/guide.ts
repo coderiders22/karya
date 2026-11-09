@@ -357,6 +357,7 @@ export const GUIDE: GuideSection[] = [
           "Admins can switch AI off for the whole workspace on the **Team** page.",
         ],
         result: "Card titles, notes and pull request titles are sent to the AI provider (GLM on z.ai). Emails and passwords never are. Anything AI writes is marked, so people know to check it.",
+        video: "ai",
         keywords: "ai artificial intelligence summary suggest glm match card automatic",
       },
       {

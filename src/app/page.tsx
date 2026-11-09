@@ -11,7 +11,7 @@ const FEATURES = [
   { icon: Gauge, title: "Sprint forecast", body: "Compares time used with work done and tells you mid-sprint how much won't land, while there's still time to cut scope." },
   { icon: Hourglass, title: "Stuck work surfaces", body: "Cards show how long they've sat in a column. Anything past your threshold, blocked or over a WIP limit is flagged on the board and your home page." },
   { icon: TextCursorInput, title: "Write it in one line", body: "Type “Checkout fails on Safari bug @sam !high #payments due:fri 3pts” and the fields fill themselves in." },
-  { icon: ScanSearch, title: "Reality check", body: "Checks the board against your code: cards marked done with open pull requests, work in progress with no commits, and merged work nobody tracked." },
+  { icon: ScanSearch, title: "Reality check", body: "Checks the board against your code: cards marked done with open pull requests, work in progress with no commits, and merged work nobody tracked. Optional AI suggests which card that work belongs to." },
 ];
 
 const COMPARE: [string, true | string, string][] = [
