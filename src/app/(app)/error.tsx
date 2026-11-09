@@ -19,7 +19,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
       }>
       Your data is safe. This is usually a brief connection problem with the server.
       <button className="mt-3 block w-full font-mono text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-        onClick={() => { navigator.clipboard.writeText(`Karya error ref: ${ref}`); toast.success("Error reference copied", { description: "Share it with whoever runs your Karya server." }); }}>
+        onClick={() => { navigator.clipboard.writeText(`Ruvano error ref: ${ref}`); toast.success("Error reference copied", { description: "Share it with whoever runs your Ruvano server." }); }}>
         Reference: {ref} · copy
       </button>
     </StatusScreen>

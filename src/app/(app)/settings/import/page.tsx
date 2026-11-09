@@ -20,7 +20,7 @@ export default async function ImportPage() {
           <p className="mt-1 text-sm text-muted">
             In Jira, open <b>Filters → View all issues</b>, filter to your project, then <b>Export → Export CSV (all fields)</b>. Upload that file here.
             Issue types, statuses, priorities, descriptions, labels, story points, sprints, comments, epics and subtasks are brought over.
-            People are matched to Karya accounts by email or name, so invite your team first.
+            People are matched to Ruvano accounts by email or name, so invite your team first.
           </p>
         </div>
         <ImportForm projects={projects} maxBytes={process.env.VERCEL ? 4 * 1024 * 1024 : undefined} />

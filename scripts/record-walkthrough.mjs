@@ -1,4 +1,4 @@
-// The full Karya walkthrough: one video that sets up a project from scratch and uses every main
+// The full Ruvano walkthrough: one video that sets up a project from scratch and uses every main
 // feature, with captions and a spoken narration.
 //
 // 1. Start from a workspace that has people but no projects:
@@ -50,8 +50,8 @@ const P = "Mobile App";
  */
 const TEAM_SCENES = [
   {
-    id: "intro", caption: "Karya · the full walkthrough",
-    text: "Welcome to Karya. In the next few minutes, we'll set up a brand new project, and use everything your team will need, day to day.",
+    id: "intro", caption: "Ruvano · the full walkthrough",
+    text: "Welcome to Ruvano. In the next few minutes, we'll set up a brand new project, and use everything your team will need, day to day.",
     async run(page, h) { await h.moveTo({ x: 700, y: 330, width: 0, height: 0 }); await h.wait(600); },
   },
   {
@@ -126,7 +126,7 @@ const TEAM_SCENES = [
   },
   {
     id: "plan", caption: step(5, "Plan a sprint in the Backlog"),
-    text: "Next, plan a sprint. In the Backlog, create a sprint, give it a goal, and move the issues you'll work on into it. After a sprint or two, Karya also compares each plan with your team's usual pace.",
+    text: "Next, plan a sprint. In the Backlog, create a sprint, give it a goal, and move the issues you'll work on into it. After a sprint or two, Ruvano also compares each plan with your team's usual pace.",
     async run(page, h) {
       await h.click(page.locator('[data-tour="project-nav"]').getByRole("link", { name: "Backlog" }));
       await h.click(page.getByRole("button", { name: "New sprint" }));
@@ -311,7 +311,7 @@ const TEAM_SCENES = [
   },
   {
     id: "outro", caption: "Need help? Everything is in the Guide",
-    text: "That's Karya. Every feature is explained in the Guide, with short videos, and you can press the question mark key, any time, for keyboard shortcuts. Happy shipping!",
+    text: "That's Ruvano. Every feature is explained in the Guide, with short videos, and you can press the question mark key, any time, for keyboard shortcuts. Happy shipping!",
     async run(page, h) {
       await h.click(page.locator('[data-tour="guide"]'));
       await page.getByPlaceholder(/Search the guide/).waitFor();

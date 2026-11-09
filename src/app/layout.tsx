@@ -21,7 +21,7 @@ export const viewport: Viewport = {
   ],
 };
 
-export const metadata: Metadata = { title: { default: "Karya", template: "%s · Karya" }, description: "Issue tracking for software teams" };
+export const metadata: Metadata = { title: { default: "Ruvano", template: "%s · Ruvano" }, description: "Plan. Track. Build. Deliver. One platform. Every step forward." };
 
 // Applies the saved theme ("light" | "dark" | "system") before first paint, and follows the OS when on "system".
 const themeScript = `try{var m=matchMedia('(prefers-color-scheme: dark)');var a=function(){var t=localStorage.getItem('theme')||'system';document.documentElement.classList.toggle('dark',t==='dark'||(t==='system'&&m.matches))};a();m.addEventListener('change',a)}catch(e){}`;

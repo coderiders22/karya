@@ -10,7 +10,7 @@ import { Logo } from "./Logo";
 const AUDIENCES = {
   teams: {
     tab: "For teams",
-    text: "Karya moves tickets when pull requests merge, turns GitHub issues into cards, writes your standup, and warns you when a sprint is slipping.",
+    text: "Ruvano moves tickets when pull requests merge, turns GitHub issues into cards, writes your standup, and warns you when a sprint is slipping.",
     cta: { href: "/signup", label: "Create a free account" },
     note: "Moving from Jira? Import its CSV export in one step.",
     video: "walkthrough",
@@ -50,9 +50,10 @@ export function HeroSwitch({ initial }: { initial: Audience }) {
           ))}
         </div>
         <h1 className="text-[2rem] font-semibold leading-[1.08] tracking-[-0.03em] sm:text-[2.75rem] sm:leading-[1.06] xl:text-5xl">
-          Tickets that<br /><span className="whitespace-nowrap text-brand-300">move themselves.</span>
+          Plan. Track.<br /><span className="whitespace-nowrap text-brand-300">Build. Deliver.</span>
         </h1>
-        <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-slate-400 sm:mt-5">{a.text}</p>
+        <p className="mt-3 text-[17px] font-medium tracking-tight text-slate-200 sm:mt-4 sm:text-[19px]">One platform. Every step forward.</p>
+        <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-slate-400 sm:mt-5">{a.text}</p>
         <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link href={a.cta.href} className="btn-primary !h-10 !px-4 text-[14px] sm:w-auto">{a.cta.label}<ArrowRight size={15} /></Link>
           <span className="text-[13px] text-slate-400">{a.note}</span>

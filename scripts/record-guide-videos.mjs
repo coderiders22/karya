@@ -169,7 +169,7 @@ const VIDEOS = {
     }
     await sprintTitle(page).scrollIntoViewIfNeeded();
     await h.moveTo(sprintTitle(page));
-    await h.caption("Karya checks the plan against your <b>usual velocity</b> and warns before you over-commit.", 600);
+    await h.caption("Ruvano checks the plan against your <b>usual velocity</b> and warns before you over-commit.", 600);
     await h.poster("sprint");
     await h.wait(3000);
     await h.caption("When the current sprint ends, <b>Start sprint</b> here. The board then shows a live forecast.", 3200);

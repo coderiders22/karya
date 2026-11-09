@@ -78,7 +78,7 @@ export function MemberActions({ userId, role, isSelf }: { userId: string; role: 
         })}>
         <KeyRound size={14} />Reset password
       </button>
-      <button className="btn-danger" disabled={pending} onClick={async () => (await confirmDialog({ title: "Remove this person?", message: "They lose access to Karya straight away. Their issues and comments stay.", danger: true, confirmLabel: "Remove" })) && run(() => removeUser(userId))}>Remove</button>
+      <button className="btn-danger" disabled={pending} onClick={async () => (await confirmDialog({ title: "Remove this person?", message: "They lose access to Ruvano straight away. Their issues and comments stay.", danger: true, confirmLabel: "Remove" })) && run(() => removeUser(userId))}>Remove</button>
     </div>
   );
 }

@@ -12,7 +12,7 @@ const ago = (date: Date) => {
 };
 const EVENT: Record<string, string> = { ping: "Test ping", push: "Push", pull_request: "Pull request", create: "New branch", issues: "Issue" };
 
-/** Whether GitHub is really connected, and when Karya last heard from it. */
+/** Whether GitHub is really connected, and when Ruvano last heard from it. */
 export function GithubStatus({ projects, me, offerConnect = true }: {
   projects: { id: string; key: string; leadId: string | null; workspaceId: string; githubRepo: string | null; githubLastEventAt: Date | null; githubLastEventType: string | null }[];
   me: { id: string; role: Role; workspaceId: string };

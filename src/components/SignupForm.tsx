@@ -11,7 +11,7 @@ const MODES = [
   { id: "STUDENT", icon: GraduationCap, title: "I'm a student", hint: "Major and minor projects, hackathons, group work" },
 ] as const;
 
-/** Sign-up: choosing how you'll use Karya decides which home screen and tools you get. */
+/** Sign-up: choosing how you'll use Ruvano decides which home screen and tools you get. */
 export function SignupForm({ join, teamName, student, title, footer }: { join?: string; teamName?: string; student?: boolean; title: string; footer: React.ReactNode }) {
   const [state, action, pending] = useActionState(signUp, undefined);
   const [mode, setMode] = useState<(typeof MODES)[number]["id"]>(join || student ? "STUDENT" : "PROFESSIONAL");
@@ -32,7 +32,7 @@ export function SignupForm({ join, teamName, student, title, footer }: { join?: 
         </>
       ) : (
         <fieldset>
-          <legend className="mb-1.5 text-[13px] font-medium text-slate-700 dark:text-slate-300">How will you use Karya?</legend>
+          <legend className="mb-1.5 text-[13px] font-medium text-slate-700 dark:text-slate-300">How will you use Ruvano?</legend>
           <div className="space-y-1.5">
             {MODES.map(({ id, icon: I, title, hint }) => (
               <label key={id} className={clsx("flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors",

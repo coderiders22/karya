@@ -68,7 +68,7 @@ export async function listGithubRepos(): Promise<{ repos?: { name: string; priva
   }
 }
 
-/** Adds Karya's webhook to the repository (or updates it if one already points here) and links it to the project. */
+/** Adds Ruvano's webhook to the repository (or updates it if one already points here) and links it to the project. */
 export async function connectGithubRepo(projectId: string, repo: string): Promise<{ error?: string }> {
   const { user: me } = await requireProjectManager(projectId);
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return { error: "Pick a repository from the list" };
@@ -90,7 +90,7 @@ export async function connectGithubRepo(projectId: string, repo: string): Promis
   } catch (e) {
     if (e instanceof GithubError) {
       if (e.status === 401) { await dropToken(me.id); return { error: "GitHub access has expired. Connect again." }; }
-      if (e.status === 404 || e.status === 403) return { error: `You need admin rights on ${repo} to add a webhook. If it's an organisation repo, the organisation may also need to approve Karya.` };
+      if (e.status === 404 || e.status === 403) return { error: `You need admin rights on ${repo} to add a webhook. If it's an organisation repo, the organisation may also need to approve Ruvano.` };
       if (e.status === 422) return { error: `GitHub refused the webhook: ${e.message}. Is ${githubWebhookUrl()} reachable from the internet?` };
     }
     return { error: e instanceof Error ? e.message : "Couldn't connect the repository" };
@@ -100,7 +100,7 @@ export async function connectGithubRepo(projectId: string, repo: string): Promis
 /**
  * "Is this actually working?" Asks GitHub to send a test delivery, then reads back what GitHub
  * recorded for the webhook. Anyone who can run the project can check, as long as they've
- * authorised GitHub themselves; otherwise it reports only what Karya has seen.
+ * authorised GitHub themselves; otherwise it reports only what Ruvano has seen.
  */
 export async function checkGithubConnection(projectId: string): Promise<{ state: "ok" | "failing" | "unknown"; message: string }> {
   const { user: me, project } = await requireProjectManager(projectId);
@@ -116,12 +116,12 @@ export async function checkGithubConnection(projectId: string): Promise<{ state:
     const hook = await gh<{ active: boolean; last_response?: { code: number | null; status: string; message: string | null } }>(t.token, path);
     const fresh = await db.project.findUniqueOrThrow({ where: { id: projectId }, select: { githubLastEventAt: true } });
     revalidatePath("/", "layout");
-    if (fresh.githubLastEventAt && Date.now() - fresh.githubLastEventAt.getTime() < 15000) return { state: "ok", message: "Working. GitHub reached Karya just now." };
+    if (fresh.githubLastEventAt && Date.now() - fresh.githubLastEventAt.getTime() < 15000) return { state: "ok", message: "Working. GitHub reached Ruvano just now." };
     const code = hook.last_response?.code;
     if (code && code >= 200 && code < 300) return { state: "ok", message: "Working. GitHub reports a successful delivery." };
-    if (code === 401) return { state: "failing", message: "GitHub reached Karya, but the secret didn't match. Disconnect and connect the repository again." };
-    if (code) return { state: "failing", message: `GitHub reached Karya but got an error (${code}). Check the repository's Settings → Webhooks → Recent Deliveries.` };
-    return { state: "failing", message: `GitHub couldn't reach ${githubWebhookUrl()}. Karya must be on a public address.` };
+    if (code === 401) return { state: "failing", message: "GitHub reached Ruvano, but the secret didn't match. Disconnect and connect the repository again." };
+    if (code) return { state: "failing", message: `GitHub reached Ruvano but got an error (${code}). Check the repository's Settings → Webhooks → Recent Deliveries.` };
+    return { state: "failing", message: `GitHub couldn't reach ${githubWebhookUrl()}. Ruvano must be on a public address.` };
   } catch (e) {
     if (e instanceof GithubError && e.status === 404) return { state: "failing", message: "The webhook is gone from the repository. Disconnect and connect it again." };
     if (e instanceof GithubError && (e.status === 401 || e.status === 403)) return { state: "unknown", message: "Your GitHub account can't test this repository. Someone with admin rights on it can." };
@@ -141,7 +141,7 @@ export async function linkRepoByHand(projectId: string, repo: string): Promise<{
   return { secret, url: githubWebhookUrl() };
 }
 
-/** Removes Karya's webhook from the repository (when it can) and unlinks the project. */
+/** Removes Ruvano's webhook from the repository (when it can) and unlinks the project. */
 export async function disconnectGithubRepo(projectId: string): Promise<{ warning?: string }> {
   const { user: me, project } = await requireProjectManager(projectId);
   let warning: string | undefined;
@@ -152,7 +152,7 @@ export async function disconnectGithubRepo(projectId: string): Promise<{ warning
       await gh(t.token, `/repos/${project.githubRepo}/hooks/${project.githubHookId}`, { method: "DELETE" });
     } catch (e) {
       if (!(e instanceof GithubError && e.status === 404)) {
-        warning = `Unlinked, but Karya couldn't remove its webhook from ${project.githubRepo}. Remove it in the repository's Settings → Webhooks.`;
+        warning = `Unlinked, but Ruvano couldn't remove its webhook from ${project.githubRepo}. Remove it in the repository's Settings → Webhooks.`;
       }
     }
   }

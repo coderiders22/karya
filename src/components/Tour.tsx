@@ -29,7 +29,7 @@ const Code = ({ children }: { children: React.ReactNode }) => (
 
 function steps(id: TourId, name: string, mode: UserMode): Step[] {
   const welcome: Step = {
-    title: `Welcome to Karya, ${name.split(" ")[0]}`,
+    title: `Welcome to Ruvano, ${name.split(" ")[0]}`,
     body: <>A one-minute look at where everything is. Use <K>→</K> and <K>←</K> to move, <K>Esc</K> to stop. You can replay this any time from <b>Guide</b>.</>,
   };
   const finish: Step[] = [
@@ -46,7 +46,7 @@ function steps(id: TourId, name: string, mode: UserMode): Step[] {
   ];
   if (id === "welcome") return [
     {
-      title: `Welcome to Karya, ${name.split(" ")[0]}`,
+      title: `Welcome to Ruvano, ${name.split(" ")[0]}`,
       body: <>A one-minute look at where everything is. Use <K>→</K> and <K>←</K> to move, <K>Esc</K> to stop. You can replay this any time from <b>Guide</b>.</>,
     },
     {
@@ -91,7 +91,7 @@ function steps(id: TourId, name: string, mode: UserMode): Step[] {
     },
     {
       title: "You're set",
-      body: <>Open a project's board next. Karya will point out how cards, columns and the sprint forecast work the first time you go there.</>,
+      body: <>Open a project's board next. Ruvano will point out how cards, columns and the sprint forecast work the first time you go there.</>,
     },
   ];
   return [

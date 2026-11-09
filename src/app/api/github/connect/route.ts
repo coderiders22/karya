@@ -5,7 +5,7 @@ import { appUrl } from "@/lib/appUrl";
 import { GITHUB_SCOPES, githubCallbackUrl, githubOAuthConfigured } from "@/lib/githubOAuth";
 
 /**
- * Step 1 of "Connect GitHub": send the person to GitHub to authorise Karya.
+ * Step 1 of "Connect GitHub": send the person to GitHub to authorise Ruvano.
  * A random `state` in a short-lived cookie proves the callback answers this request.
  */
 export async function GET(req: Request) {

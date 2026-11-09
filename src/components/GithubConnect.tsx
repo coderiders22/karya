@@ -70,12 +70,12 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
             <a href={`https://github.com/${repo}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium hover:underline">
               {repo}<ExternalLink size={12} className="text-slate-400" />
             </a>
-            <div className="text-xs text-muted">Issues, pushes, branches and pull requests are sent to Karya.</div>
+            <div className="text-xs text-muted">Issues, pushes, branches and pull requests are sent to Ruvano.</div>
           </div>
           {canManage && <button className="btn" disabled={pending} onClick={async () => {
             const ok = await confirmDialog({
               title: `Disconnect ${repo}?`,
-              message: "Karya removes its webhook from the repository. Cards and links already on the board stay.",
+              message: "Ruvano removes its webhook from the repository. Cards and links already on the board stay.",
               confirmLabel: "Disconnect", danger: true,
             });
             if (!ok) return;
@@ -99,7 +99,7 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
         <>
           <a href={connectHref} className="btn-primary !h-9 !px-3.5"><Github size={16} />Connect GitHub</a>
           <p className="mt-2 text-xs text-muted">
-            GitHub will ask to let Karya see your repositories and manage webhooks. Karya only adds one webhook to the repository you pick; it never reads or changes your code.
+            GitHub will ask to let Ruvano see your repositories and manage webhooks. Ruvano only adds one webhook to the repository you pick; it never reads or changes your code.
           </p>
         </>
       )}
@@ -107,7 +107,7 @@ export function GithubConnect({ projectId, projectKey, configured, repo, login, 
   );
 }
 
-/** Answers "is it actually working?": what Karya has received, a live test, and how to see it work. */
+/** Answers "is it actually working?": what Ruvano has received, a live test, and how to see it work. */
 function ConnectionHealth({ projectId, projectKey, canManage, hasHook, lastEventAt, lastEventType }: {
   projectId: string; projectKey: string; canManage: boolean; hasHook: boolean; lastEventAt: string | null; lastEventType: string | null;
 }) {
@@ -141,10 +141,10 @@ function ConnectionHealth({ projectId, projectKey, canManage, hasHook, lastEvent
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>Open a new issue on GitHub: a card appears on the board within seconds.</li>
           <li>Create a branch named after a card, for example <code className="font-mono">{projectKey.toLowerCase()}-1-fix-login</code>, and push it.</li>
-          <li>Open that card in Karya: the branch appears under <b>Development</b>.</li>
+          <li>Open that card in Ruvano: the branch appears under <b>Development</b>.</li>
           <li>Open a pull request from it: the card moves to review. Merge it: the card moves to done.</li>
         </ol>
-        <p className="mt-2">Branches, commits and PRs only link when they mention a card's key. Cards changed in Karya don't change the issue on GitHub.</p>
+        <p className="mt-2">Branches, commits and PRs only link when they mention a card's key. Cards changed in Ruvano don't change the issue on GitHub.</p>
       </details>
     </div>
   );

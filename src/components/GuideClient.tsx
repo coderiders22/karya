@@ -98,7 +98,7 @@ export function GuideClient({ sections, shortcuts, student }: { sections: GuideS
         {!query && (
           <section id="shortcuts" data-guide-section className="scroll-mt-6 pt-10">
             <h2 className="mb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-brand">Keyboard shortcuts</h2>
-            <p className="mb-4 text-[14px] text-slate-600 dark:text-slate-400">Press <span className="kbd">?</span> anywhere in Karya to see these.</p>
+            <p className="mb-4 text-[14px] text-slate-600 dark:text-slate-400">Press <span className="kbd">?</span> anywhere in Ruvano to see these.</p>
             <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
               {shortcuts.map(([group, rows]) => (
                 <div key={group}>
@@ -131,7 +131,7 @@ function Walkthrough({ student }: { student?: boolean }) {
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="flex items-center bg-slate-950">
           {playing ? (
-            <video controls autoPlay playsInline preload="auto" poster={`/guide/videos/${name}.jpg`} className="block aspect-[16/10] w-full" aria-label="Video: Karya, the full walkthrough">
+            <video controls autoPlay playsInline preload="auto" poster={`/guide/videos/${name}.jpg`} className="block aspect-[16/10] w-full" aria-label="Video: Ruvano, the full walkthrough">
               <source src={`/guide/videos/${name}.mp4`} type="video/mp4" />
               <track kind="captions" src={`/guide/videos/${name}.vtt`} srcLang="en" label="English" />
             </video>
@@ -149,7 +149,7 @@ function Walkthrough({ student }: { student?: boolean }) {
         </div>
         <div className="flex flex-col justify-center p-5 sm:p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-brand">Start here · with voice</div>
-          <h2 id="walkthrough-title" className="mt-1.5 text-lg font-semibold tracking-tight text-slate-900 dark:text-white">{student ? "Your project, from template to team" : "Karya, from first project to daily standup"}</h2>
+          <h2 id="walkthrough-title" className="mt-1.5 text-lg font-semibold tracking-tight text-slate-900 dark:text-white">{student ? "Your project, from template to team" : "Ruvano, from first project to daily standup"}</h2>
           <p className="mt-2 text-[13.5px] leading-relaxed text-slate-600 dark:text-slate-400">
             {student
               ? "Watch a hackathon project set up from a template: the deadline, a team link, tasks shared out, GitHub issues turning into cards, and who's doing what."

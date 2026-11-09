@@ -15,10 +15,10 @@ const ago = (d) => new Date(Date.now() - d * DAY);
 const pw = () => randomBytes(9).toString("base64url");
 
 const people = [
-  { name: "Aanya Kapoor", email: "aanya@karya.test", role: "ADMIN" },
-  { name: "Sam Rivera", email: "sam@karya.test", role: "MEMBER" },
-  { name: "Rohan Mehta", email: "rohan@karya.test", role: "MEMBER" },
-  { name: "Lena Fischer", email: "lena@karya.test", role: "MEMBER" },
+  { name: "Aanya Kapoor", email: "aanya@ruvano.test", role: "ADMIN" },
+  { name: "Sam Rivera", email: "sam@ruvano.test", role: "MEMBER" },
+  { name: "Rohan Mehta", email: "rohan@ruvano.test", role: "MEMBER" },
+  { name: "Lena Fischer", email: "lena@ruvano.test", role: "MEMBER" },
 ].map((p) => ({ ...p, password: pw() }));
 const workspace = await db.workspace.create({ data: { name: "Demo team" } });
 const u = {};

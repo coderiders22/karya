@@ -13,7 +13,7 @@ export default async function GuidePage() {
     <main>
       <PageHeader
         title="Guide"
-        description="How each part of Karya works, what it does for your team, and short videos of the real thing."
+        description="How each part of Ruvano works, what it does for your team, and short videos of the real thing."
         actions={<GuideTourButton />}
       />
       <GuideClient sections={GUIDE.filter((section) => !section.studentsOnly || student).map((section) => ({ ...section, topics: section.topics.filter((topic) => !topic.teamsOnly || !student) }))} shortcuts={SHORTCUTS} student={student} />

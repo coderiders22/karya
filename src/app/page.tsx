@@ -114,7 +114,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
 
       <footer className="border-t border-slate-200 dark:border-slate-800">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4 text-xs text-muted sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-0">
-          <span>Karya: Sanskrit for “work”. Tickets that move themselves.</span>
+          <span>Ruvano: Ru for rhythm, Va for value, No for what&apos;s next. One platform. Every step forward.</span>
           <Link href={cta.href} className="hover:text-slate-900 dark:hover:text-white">{cta.label} →</Link>
         </div>
       </footer>

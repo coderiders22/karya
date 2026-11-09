@@ -18,7 +18,7 @@ export function ForgotForm() {
         <div role="status" className="rounded-lg border border-brand bg-brand/5 px-4 py-3 text-[14px]">
           <p className="font-medium">Request received</p>
           <p className="mt-1 text-[13px] text-slate-600 dark:text-slate-300">
-            If {state.sentTo} has a Karya account, we&apos;ll send a reset link to it within 24 to 48 hours. Check your spam folder too.
+            If {state.sentTo} has a Ruvano account, we&apos;ll send a reset link to it within 24 to 48 hours. Check your spam folder too.
           </p>
         </div>
         <Link href="/login" className="btn !h-10 w-full text-[14px]">Back to log in</Link>
@@ -44,8 +44,8 @@ export function ForgotForm() {
 export type PasswordRequestRow = { id: string; name: string; email: string; account: string; waited: string; hours: number };
 
 function gmailLink(row: PasswordRequestRow, link: string) {
-  const body = `Hi ${row.name.split(" ")[0]},\n\nYou asked to reset your Karya password. Open this link to choose a new one:\n\n${link}\n\nIt works once and expires in 48 hours. If you didn't ask for this, you can ignore this email.\n\nKarya`;
-  const params = new URLSearchParams({ view: "cm", fs: "1", to: row.email, su: "Reset your Karya password", body });
+  const body = `Hi ${row.name.split(" ")[0]},\n\nYou asked to reset your Ruvano password. Open this link to choose a new one:\n\n${link}\n\nIt works once and expires in 48 hours. If you didn't ask for this, you can ignore this email.\n\nRuvano`;
+  const params = new URLSearchParams({ view: "cm", fs: "1", to: row.email, su: "Reset your Ruvano password", body });
   return `https://mail.google.com/mail/?${params}`;
 }
 

@@ -5,9 +5,9 @@
 @custom-variant touch (@media (hover: none));
 
 /*
- * Karya design system
+ * Ruvano design system
  * ───────────────────
- * Derived from the logo: Ink (the tile, #1a1a18) + Karya Teal (the card, #17a383).
+ * Derived from the logo: Ink (the tile, #1a1a18) + Ruvano Teal (the card, #17a383).
  *
  *  brand-*   11-step teal scale. 500 is the logo card. Interactive teal in light mode is 600
  *            (#0a7c62, 5.2:1 on white, WCAG AA for text); in dark mode it is 400 with ink text (7.6:1).
@@ -247,10 +247,19 @@
     @keyframes ll-pulse { 50% { opacity: 0.45; } }
   }
 
-  /* Splash wrapper: tile pops in once, then the loader loops until the app is ready. */
+  /* Splash: the logo draws itself once and stays, then the name and taglines rise in turn. */
   .splash { animation: splash-failsafe 0.3s ease-out 6s forwards; }
   .splash-in   { animation: splash-in 420ms var(--ease-out-quint) both; }
-  .splash-word { animation: splash-rise 360ms var(--ease-out-quint) 200ms both; }
+  .splash .ll-arm-1 { animation: splash-draw 460ms var(--ease-out-quint) 120ms both; }
+  .splash .ll-arm-2 { animation: splash-draw 320ms var(--ease-out-quint) 420ms both; }
+  .splash .ll-card  { animation: splash-drop 480ms var(--ease-spring) 620ms both; }
+  .splash-word { animation: splash-rise 420ms var(--ease-out-quint) both; }
+  @keyframes splash-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes splash-drop { from { opacity: 0; transform: translate(-3px, -9px) rotate(-14deg) scale(0.6); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .splash-in, .splash-word, .splash .ll-card { animation: none; }
+    .splash .ll-arm-1, .splash .ll-arm-2 { animation: none; stroke-dashoffset: 0; }
+  }
   @keyframes splash-in { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
   @keyframes splash-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   @keyframes splash-failsafe { to { opacity: 0; visibility: hidden; } }

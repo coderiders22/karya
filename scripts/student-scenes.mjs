@@ -60,8 +60,8 @@ const dueIn = (days) => {
 
 export const SCENES = [
   {
-    id: "intro", caption: "Karya for students",
-    text: "This is Karya for students. Major projects, minor projects, hackathons. Let's set up a hackathon project, with a team, from scratch.",
+    id: "intro", caption: "Ruvano for students",
+    text: "This is Ruvano for students. Major projects, minor projects, hackathons. Let's set up a hackathon project, with a team, from scratch.",
     async run(page, h) { await h.moveTo({ x: 900, y: 240, width: 0, height: 0 }); await h.wait(500); },
   },
   {
@@ -92,7 +92,7 @@ export const SCENES = [
   },
   {
     id: "create", caption: step(3, "Name it and set the deadline"),
-    text: "Give it a name, and the submission deadline. Karya lays out the usual steps, and dates each one back from that deadline.",
+    text: "Give it a name, and the submission deadline. Ruvano lays out the usual steps, and dates each one back from that deadline.",
     async run(page, h) {
       await h.click(page.locator("input[name=name]")); await h.type(NAME, 55);
       const due = page.locator("input[type=datetime-local]");
@@ -231,7 +231,7 @@ export const SCENES = [
   },
   {
     id: "outro", caption: "Free, for your whole team",
-    text: "That's Karya for students. It's free, for your whole team. Good luck with your project!",
+    text: "That's Ruvano for students. It's free, for your whole team. Good luck with your project!",
     async run(page, h) { await h.moveTo({ x: 800, y: 400, width: 0, height: 0 }); await h.wait(500); },
   },
 ];

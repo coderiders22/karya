@@ -87,7 +87,7 @@ export const GUIDE: GuideSection[] = [
     topics: [
       {
         id: "tour", title: "Take the tour",
-        summary: "A one-minute walkthrough that points at each part of Karya and says what it does.",
+        summary: "A one-minute walkthrough that points at each part of Ruvano and says what it does.",
         steps: [
           "Click **Take the tour** below, or open your name at the bottom of the sidebar and choose **Take the tour**.",
           "Use **Next** or the `→` key to move on, `←` to go back, `Esc` to stop.",
@@ -143,7 +143,7 @@ export const GUIDE: GuideSection[] = [
       },
       {
         id: "colors", title: "Labels, priorities and their colors",
-        summary: "Colors carry meaning in Karya, so you can scan a board without reading every word.",
+        summary: "Colors carry meaning in Ruvano, so you can scan a board without reading every word.",
         steps: [
           "**Priority** reads like signal bars: the more bars filled, the higher it is. Three orange bars = High (do next), two amber = Medium (normal), one blue = Low (when there's time), none = Lowest (someday). A solid **red square with !** = Highest: drop everything.",
           "**Status**: grey for to do, blue for in progress, green for done.",
@@ -231,7 +231,7 @@ export const GUIDE: GuideSection[] = [
       },
       {
         id: "stuck", title: "Spot stuck work",
-        summary: "Karya tells you which work is waiting, so problems come up before the sprint ends.",
+        summary: "Ruvano tells you which work is waiting, so problems come up before the sprint ends.",
         steps: [
           "Every card shows how long it has been in its current column. It turns amber when it passes the project's limit (3 days by default, change it in **Settings**).",
           "A red **Blocked** tag means another unfinished issue is holding it up.",
@@ -310,7 +310,7 @@ export const GUIDE: GuideSection[] = [
         id: "roadmap", title: "Roadmap",
         summary: "Every epic on a timeline with live progress from its child issues.",
         steps: [
-          "Create an issue of type **Epic**. Give it a start and due date for an exact bar; without dates Karya estimates one.",
+          "Create an issue of type **Epic**. Give it a start and due date for an exact bar; without dates Ruvano estimates one.",
           "Link stories and tasks to it: `^WR-4` when creating, or the **Epic** field on the issue.",
           "Open **Roadmap** to see epics as bars that fill up as their work is done.",
         ],
@@ -362,7 +362,7 @@ export const GUIDE: GuideSection[] = [
         summary: "Know straight away when work is assigned to you or someone needs you.",
         steps: [
           "You're notified when you're **assigned** an issue, **@mentioned** in a comment or description, someone **comments** on an issue you watch, or its **status changes**.",
-          "While Karya is open, a pop-up appears with an **Open** button, and a soft chime plays. The tab title shows the unread count.",
+          "While Ruvano is open, a pop-up appears with an **Open** button, and a soft chime plays. The tab title shows the unread count.",
           "When you come back after being away, a summary shows what arrived.",
           "Open the bell at the top of the sidebar to see everything. Use the speaker button there to turn the sound off or on.",
         ],
@@ -378,12 +378,12 @@ export const GUIDE: GuideSection[] = [
         id: "github", title: "Connect GitHub",
         summary: "Branches, commits and pull requests show up on the issue, and statuses move by themselves.",
         steps: [
-          "Open a project and click **GitHub** in its menu. Click **Connect GitHub**, allow Karya on GitHub, then pick the repository. Karya adds its webhook by itself (you need admin rights on the repository), and brings over the open issues.",
+          "Open a project and click **GitHub** in its menu. Click **Connect GitHub**, allow Ruvano on GitHub, then pick the repository. Ruvano adds its webhook by itself (you need admin rights on the repository), and brings over the open issues.",
           "New issues on GitHub now appear as cards on the board within seconds. Closing one on GitHub closes its card, and reopening it brings the card back. **Fetch from GitHub** on the board gets them right away.",
           "Mention a card's key in a branch name, commit or PR title, for example `wr-12-fix-login`. Right-click a card and choose **Copy git branch command** to get a correctly named branch.",
-          "To check it's working, click **Test connection** on the same page. **Your work** also shows each connected repository and when Karya last heard from it.",
+          "To check it's working, click **Test connection** on the same page. **Your work** also shows each connected repository and when Ruvano last heard from it.",
         ],
-        result: "Opening a PR moves the card to review; merging moves it to done. Changes go one way: moving a card in Karya doesn't change the issue on GitHub. On a public repository anyone can open an issue, so you can turn issues off on the same page.",
+        result: "Opening a PR moves the card to review; merging moves it to done. Changes go one way: moving a card in Ruvano doesn't change the issue on GitHub. On a public repository anyone can open an issue, so you can turn issues off on the same page.",
         keywords: "github git pull request pr branch commit webhook automation connect oauth repository status working test",
       },
       {
@@ -391,7 +391,7 @@ export const GUIDE: GuideSection[] = [
         teamsOnly: true,
         summary: "Bring existing Jira projects in, or take a project back to Jira at any time.",
         steps: [
-          "**Import**: in Jira, export your issues as **CSV (all fields)**. In Karya, open **Import & backup**, choose the file and a project.",
+          "**Import**: in Jira, export your issues as **CSV (all fields)**. In Ruvano, open **Import & backup**, choose the file and a project.",
           "**Export**: in project **Settings**, click **Download Jira CSV**, then use Jira's CSV importer.",
         ],
         admin: true,

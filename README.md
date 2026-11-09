@@ -1,6 +1,8 @@
-# Karya
+# Ruvano
 
-**Karya** (Sanskrit for “work”) is a self-hosted issue tracker that keeps itself up to date. Free, unlimited users, and it can move projects to or from Jira.
+**Plan. Track. Build. Deliver.** One platform. Every step forward.
+
+**Ruvano** (Ru for rhythm, Va for value, No for what's next) is a self-hosted issue tracker that keeps itself up to date. Free, unlimited users, and it can move projects to or from Jira.
 
 **What makes it different**
 - **GitHub automation:** mention `WEB-12` in a branch, commit or PR title. The PR shows on the issue, opening it moves the issue to review, and merging it moves it to done.

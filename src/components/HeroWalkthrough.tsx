@@ -56,7 +56,7 @@ export function HeroWalkthrough({ video: name = "walkthrough" }: { video?: strin
 
   return (
     <figure className="relative w-full">
-      <figcaption className="sr-only">The Karya app, playing with the sound off. Turn sound on with the button on the video.</figcaption>
+      <figcaption className="sr-only">The Ruvano app, playing with the sound off. Turn sound on with the button on the video.</figcaption>
       <div aria-hidden className="pointer-events-none absolute -inset-x-10 -top-8 bottom-6 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(54,192,159,0.34),transparent_68%)] blur-2xl" />
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121211] shadow-[0_50px_100px_-36px_rgba(0,0,0,0.85)] ring-1 ring-inset ring-white/10">
         <div className="grid h-9 grid-cols-[1fr_auto_1fr] items-center border-b border-white/[0.06] bg-white/[0.03] px-3">
@@ -65,7 +65,7 @@ export function HeroWalkthrough({ video: name = "walkthrough" }: { video?: strin
             <span className="size-2 rounded-full bg-white/20" />
             <span className="size-2 rounded-full bg-white/20" />
           </span>
-          <span className="text-[11px] font-medium tracking-wide text-white/40">karya</span>
+          <span className="text-[11px] font-medium tracking-wide text-white/40">ruvano</span>
           <button
             type="button"
             onClick={toggleSound}
@@ -86,7 +86,7 @@ export function HeroWalkthrough({ video: name = "walkthrough" }: { video?: strin
             preload="auto"
             poster={`/guide/videos/${name}.jpg`}
             className="block aspect-[16/10] h-auto w-full bg-white object-contain"
-            aria-label="Karya, the whole product, playing with the sound off"
+            aria-label="Ruvano, the whole product, playing with the sound off"
           >
             <source src={`/guide/videos/${name}.mp4`} type="video/mp4" />
             <track kind="captions" src={`/guide/videos/${name}.vtt`} srcLang="en" label="English" />

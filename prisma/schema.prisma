@@ -77,7 +77,7 @@ model User {
   passwordHash String
   role         Role       @default(MEMBER)
   mode         UserMode   @default(PROFESSIONAL)
-  /// Runs this Karya site, and answers forgot-password requests from every workspace. Can open any
+  /// Runs this Ruvano site, and answers forgot-password requests from every workspace. Can open any
   /// account through a reset link, so it's set only on the first admin, never from a form or email.
   siteOwner    Boolean    @default(false)
   resetRequests PasswordResetRequest[]
@@ -151,7 +151,7 @@ model Project {
   color        String   @default("#0e7c66")
   /// Move issues automatically when linked pull requests open / merge.
   gitAutomation Boolean @default(true)
-  /// Connected with one click from project settings: "owner/repo", and the webhook Karya created there.
+  /// Connected with one click from project settings: "owner/repo", and the webhook Ruvano created there.
   githubRepo    String?
   githubHookId  String?
   /// Sealed secret for this project's webhook. Empty on older connections (they use the shared one).
@@ -392,7 +392,7 @@ model LabelColor {
   @@id([workspaceId, name])
 }
 
-/// A person's GitHub authorisation, used to list their repositories and add/remove Karya's webhook.
+/// A person's GitHub authorisation, used to list their repositories and add/remove Ruvano's webhook.
 /// The access token is encrypted with a key derived from AUTH_SECRET.
 model GithubAccount {
   userId    String   @id

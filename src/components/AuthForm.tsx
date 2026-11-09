@@ -85,7 +85,7 @@ const PANELS = {
   typing: {
     eyebrow: "One line, every field",
     title: "Write issues the way you'd say them out loud.",
-    text: "Karya picks out the person, priority, labels and due date while you type. No forms to click through.",
+    text: "Ruvano picks out the person, priority, labels and due date while you type. No forms to click through.",
     demo: <TypingDemo />,
   },
 };
@@ -107,9 +107,9 @@ export function AuthCard({ title, subtitle, children, footer, host, panel = "tea
             <div className="mt-7">{side.demo}</div>
           </div>
         </div>
-        <div className="relative flex items-center justify-between px-10 pb-8 text-xs text-slate-500">
-          <span>Karya means “work” in Sanskrit.</span>
-          <span>Tickets that move themselves.</span>
+        <div className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-10 pb-8 text-xs text-slate-500">
+          <span>Ru for rhythm, Va for value, No for what&apos;s next.</span>
+          <span>Plan. Track. Build. Deliver.</span>
         </div>
       </aside>
 

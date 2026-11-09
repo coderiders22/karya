@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes }
 import { appUrl } from "./appUrl";
 
 /**
- * One-click GitHub connection (OAuth App). A person authorises Karya once; Karya then lists the
+ * One-click GitHub connection (OAuth App). A person authorises Ruvano once; Ruvano then lists the
  * repositories they administer and adds its webhook to the one they pick.
  *
  * Needs GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET. The OAuth App's callback URL must be
@@ -13,7 +13,7 @@ export const githubOAuthConfigured = () => !!(process.env.GITHUB_CLIENT_ID && pr
 export const githubCallbackUrl = () => `${appUrl()}/api/github/callback`;
 export const githubWebhookUrl = () => `${appUrl()}/api/integrations/github`;
 
-/** `repo` to see private repositories, `admin:repo_hook` to add and remove Karya's webhook. */
+/** `repo` to see private repositories, `admin:repo_hook` to add and remove Ruvano's webhook. */
 export const GITHUB_SCOPES = "repo admin:repo_hook";
 
 /**
@@ -60,7 +60,7 @@ export async function gh<T = unknown>(token: string, path: string, init: { metho
       Accept: "application/vnd.github+json",
       Authorization: `Bearer ${token}`,
       "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "Karya",
+      "User-Agent": "Ruvano",
       ...(init.body ? { "Content-Type": "application/json" } : {}),
     },
     body: init.body ? JSON.stringify(init.body) : undefined,

@@ -22,14 +22,14 @@ export type GithubIssue = {
 
 export type SyncResult = "added" | "updated" | "skipped";
 
-/** What GitHub last said about the title and text, so a change made in Karya isn't overwritten by an unrelated GitHub update. */
+/** What GitHub last said about the title and text, so a change made in Ruvano isn't overwritten by an unrelated GitHub update. */
 const seenHash = (i: GithubIssue) => createHash("sha256").update(`${i.title}\n${i.body ?? ""}`).digest("hex").slice(0, 32);
 const cleanBody = (i: GithubIssue) => (i.body ?? "").replace(/\r\n?/g, "\n").slice(0, 20000);
 const labelsOf = (i: GithubIssue) => [...new Set((i.labels ?? [])
   .map((l) => (typeof l === "string" ? l : l.name ?? "").trim().toLowerCase().replace(/\s+/g, "-"))
   .filter(Boolean))];
 
-/** Someone on the team who has linked this GitHub login. GitHub usernames say nothing about who that is in Karya otherwise. */
+/** Someone on the team who has linked this GitHub login. GitHub usernames say nothing about who that is in Ruvano otherwise. */
 async function assigneeFrom(project: { id: string; workspaceId: string }, issue: GithubIssue) {
   const logins = [issue.assignee?.login, ...(issue.assignees ?? []).map((a) => a.login)].filter((l): l is string => !!l);
   if (logins.length === 0) return null;
@@ -41,11 +41,11 @@ async function assigneeFrom(project: { id: string; workspaceId: string }, issue:
 }
 
 /**
- * Brings one GitHub issue onto the board, or updates its card. Goes one way only: GitHub to Karya.
+ * Brings one GitHub issue onto the board, or updates its card. Goes one way only: GitHub to Ruvano.
  * Safe to run twice for the same issue, because GitHub can deliver an event more than once.
  *
  * A card only changes column when the issue's state changes on GitHub. So a card moved to Done in
- * Karya stays there, even though its GitHub issue is still open.
+ * Ruvano stays there, even though its GitHub issue is still open.
  */
 export async function syncGithubIssue(projectId: string, issue: GithubIssue, opts: { action?: string; announce?: boolean } = {}): Promise<SyncResult> {
   if (issue.pull_request || !issue.number || !issue.title) return "skipped";

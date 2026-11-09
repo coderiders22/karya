@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 
 /**
- * Karya's own confirm / prompt dialogs, replacing the browser's `confirm()` and `prompt()`,
+ * Ruvano's own confirm / prompt dialogs, replacing the browser's `confirm()` and `prompt()`,
  * which look like a different app, can't be styled, and block the whole tab.
  *
  *   if (!(await confirmDialog({ title: "Delete AS-4?", danger: true }))) return;
@@ -36,7 +36,7 @@ function settle(value: boolean | string | null) {
   else r.resolve(typeof value === "string" ? value : null);
 }
 
-/** True while a Karya dialog is on screen; page-level shortcuts should stand aside. */
+/** True while a Ruvano dialog is on screen; page-level shortcuts should stand aside. */
 export const isDialogOpen = () => current !== null;
 
 export function confirmDialog(opts: ConfirmOpts): Promise<boolean> {
@@ -86,7 +86,7 @@ function DialogView({ req }: { req: Request }) {
   return (
     <div className="fixed inset-0 z-[90] flex animate-fade items-start justify-center bg-slate-950/45 p-4 pt-[18vh] backdrop-blur-[3px]" onMouseDown={() => settle(null)}>
       <form
-        role="alertdialog" aria-modal="true" aria-labelledby="karya-dialog-title"
+        role="alertdialog" aria-modal="true" aria-labelledby="ruvano-dialog-title"
         className="card w-full max-w-[26rem] animate-pop overflow-hidden !shadow-xl"
         onMouseDown={(e) => e.stopPropagation()}
         onSubmit={(e) => { e.preventDefault(); submit(); }}
@@ -98,7 +98,7 @@ function DialogView({ req }: { req: Request }) {
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <h2 id="karya-dialog-title" className="text-[15px] font-semibold leading-6 text-slate-900 dark:text-slate-100">{opts.title}</h2>
+            <h2 id="ruvano-dialog-title" className="text-[15px] font-semibold leading-6 text-slate-900 dark:text-slate-100">{opts.title}</h2>
             {opts.message && <div className="mt-1 text-[13.5px] leading-relaxed text-slate-600 dark:text-slate-400">{opts.message}</div>}
             {prompt && (
               <label className="mt-3 block">

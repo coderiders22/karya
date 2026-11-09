@@ -1,6 +1,6 @@
 /**
- * Karya's loading indicator: the logo, animated on a loop.
- * The two arms of the K draw in, the teal task card drops into its slot, holds,
+ * Ruvano's loading indicator: the logo, animated on a loop.
+ * The bowl and leg of the R draw in, the teal task card drops into its slot, holds,
  * then everything lifts away and it starts again: work being set down, over and over.
  *
  * Works on any background (tile follows the theme), honours reduced motion
@@ -12,10 +12,10 @@ export function LogoLoader({ size = 40, label = "Loading", className = "" }: { s
     <span role="status" aria-label={label} className={`inline-block ${className}`}>
       <svg width={size} height={size} viewBox="0 0 32 32" className="logo-loader block" aria-hidden>
         <rect width="32" height="32" rx="8" className="fill-slate-900 dark:fill-slate-100" />
-        <rect x="8" y="7" width="4" height="18" rx="2" className="fill-white dark:fill-slate-900" />
-        <path d="M14 15.5 21.5 8" pathLength={1} className="ll-arm-1 stroke-white dark:stroke-slate-900" strokeWidth="4" strokeLinecap="round" fill="none" />
-        <path d="M14 16.5 18 20.5" pathLength={1} className="ll-arm-2 stroke-white dark:stroke-slate-900" strokeWidth="4" strokeLinecap="round" fill="none" />
-        <rect x="18.2" y="18.7" width="6.6" height="6.6" rx="1.8" fill="#17a383" strokeWidth="1.6" className="ll-card stroke-slate-900 dark:stroke-slate-100" />
+        <rect x="7.5" y="7" width="4" height="18" rx="2" className="fill-white dark:fill-slate-900" />
+        <path d="M9.5 9h6a3.5 3.5 0 0 1 0 7h-4" pathLength={1} className="ll-arm-1 stroke-white dark:stroke-slate-900" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M13.5 16.5 16 23" pathLength={1} className="ll-arm-2 stroke-white dark:stroke-slate-900" strokeWidth="4" strokeLinecap="round" fill="none" />
+        <rect x="19" y="19" width="6" height="6" rx="1.7" fill="#17a383" className="ll-card" />
       </svg>
     </span>
   );

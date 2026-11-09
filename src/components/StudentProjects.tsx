@@ -64,7 +64,7 @@ export function TeamLink({ projectId, projectName, link, canReset }: { projectId
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [pending, start] = useTransition();
-  const message = `Join our team for ${projectName} on Karya: ${link}`;
+  const message = `Join our team for ${projectName} on Ruvano: ${link}`;
   return (
     <section className="card p-4">
       <h2 className="section-title">Add teammates</h2>

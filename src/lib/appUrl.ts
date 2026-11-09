@@ -1,5 +1,5 @@
 /**
- * The public address of this Karya install, without a trailing slash. Used in invite and
+ * The public address of this Ruvano install, without a trailing slash. Used in invite and
  * reset links and the GitHub webhook URL.
  * APP_URL wins; on Vercel it falls back to the project's production domain.
  */

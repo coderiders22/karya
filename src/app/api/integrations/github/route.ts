@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const secret = c.githubSecret ? openToken(c.githubSecret) : shared; // older connections used the shared secret
     return !!secret && verifySignature(body, signature, secret);
   });
-  if (verified.length === 0) return NextResponse.json({ error: connected.length ? "Bad signature" : "This repository isn't connected to a Karya project" }, { status: connected.length ? 401 : 404 });
+  if (verified.length === 0) return NextResponse.json({ error: connected.length ? "Bad signature" : "This repository isn't connected to a Ruvano project" }, { status: connected.length ? 401 : 404 });
   const projectIds = verified.map((c) => c.id);
 
   const event = req.headers.get("x-github-event");
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   await db.project.updateMany({ where: { id: { in: projectIds } }, data: { githubLastEventAt: new Date(), githubLastEventType: event ?? "unknown" } });
   let linked = 0;
 
-  if (event === "ping") return NextResponse.json({ ok: true, message: "Karya is listening" });
+  if (event === "ping") return NextResponse.json({ ok: true, message: "Ruvano is listening" });
 
   if (event === "issues" && p.issue && !["deleted", "transferred"].includes(p.action)) {
     for (const project of verified) {
