@@ -1,7 +1,7 @@
 WEBVTT
 
 1
-00:00:00.160 --> 00:00:07.827
+00:00:00.160 --> 00:00:07.829
 Welcome to Ruvano. In the next few minutes, we'll set up a brand new project, and use everything your team will need, day to day.
 
 2
@@ -9,61 +9,61 @@ Welcome to Ruvano. In the next few minutes, we'll set up a brand new project, an
 Everything starts with a project. We'll call this one Mobile App, with the short key MOB. Every issue in the project is numbered with that key, like MOB one.
 
 3
-00:00:21.000 --> 00:00:29.819
+00:00:21.120 --> 00:00:29.938
 This is the board, empty for now. Big goals are called epics. Click New issue, type the title, and slash epic sets the type.
 
 4
-00:00:32.119 --> 00:00:44.208
+00:00:32.080 --> 00:00:44.168
 Now a story under that epic. While you type the title, the at sign assigns a teammate, the hash sign adds a label, and the exclamation mark sets the priority. We'll add an estimate, and link it to the epic.
 
 5
-00:00:46.920 --> 00:00:55.405
+00:00:46.760 --> 00:00:55.245
 To add several issues quickly, use Add an issue, at the bottom of a column. The same shortcuts work here, and your picks show up as colored chips.
 
 6
-00:01:10.320 --> 00:01:22.110
+00:01:09.200 --> 00:01:20.990
 Next, plan a sprint. In the Backlog, create a sprint, give it a goal, and move the issues you'll work on into it. After a sprint or two, Ruvano also compares each plan with your team's usual pace.
 
 7
-00:01:25.560 --> 00:01:34.593
+00:01:24.400 --> 00:01:33.433
 When the plan looks right, start the sprint. The board now shows only this sprint, with a live forecast at the top, so you know early if work won't land.
 
 8
-00:01:36.320 --> 00:01:49.020
+00:01:34.960 --> 00:01:47.660
 As work moves, drag the cards across the columns. Every card shows how long it has been in its column, so anything stuck stands out. The board is live, so your team's changes show up by themselves.
 
 9
-00:01:51.760 --> 00:02:00.992
+00:01:50.360 --> 00:01:59.594
 Click any card to open it in the side panel. Change its status, priority, or labels, right here. New labels can get any color you like.
 
 10
-00:02:03.200 --> 00:02:10.401
+00:02:01.600 --> 00:02:08.801
 Comments live here too. Type the at sign to mention a teammate. They get a notification, with a soft chime, straight away.
 
 11
-00:02:12.400 --> 00:02:22.879
+00:02:10.759 --> 00:02:21.239
 Every morning, open Standup. It shows what each person finished, what they're on, and what's blocked, straight from the board. Run standup goes person by person, with a timer.
 
 12
-00:02:24.400 --> 00:02:34.228
+00:02:22.880 --> 00:02:32.708
 The roadmap shows every epic on a timeline, filling up as its stories get done. Insights tracks the sprint burndown, your velocity, and where work tends to wait.
 
 13
-00:02:35.560 --> 00:02:43.543
+00:02:34.040 --> 00:02:42.023
 All issues searches across every project. Filter, tick a few rows, and change their assignee, priority, or sprint, in one go.
 
 14
-00:02:46.880 --> 00:02:56.951
+00:02:45.280 --> 00:02:55.351
 Click GitHub in the project menu to connect your repository. New GitHub issues become cards on the board, and cards move by themselves when pull requests open and merge.
 
 15
-00:02:58.200 --> 00:03:05.215
+00:02:56.600 --> 00:03:03.615
 In project settings, you can set work in progress limits on columns, and export the whole project to Jira at any time.
 
 16
-00:03:06.960 --> 00:03:17.281
+00:03:05.200 --> 00:03:15.522
 Finally, invite your team. Type an email, choose a role, from viewer to admin, and create a link to share on Slack or WhatsApp. Only people you invite can get in.
 
 17
-00:03:18.800 --> 00:03:28.670
+00:03:17.200 --> 00:03:27.080
 That's Ruvano. Every feature is explained in the Guide, with short videos, and you can press the question mark key, any time, for keyboard shortcuts. Happy shipping!

@@ -1,14 +1,18 @@
 /**
  * Ruvano: Ru for rhythm, Va for value, No for what's next.
- * The mark is an R whose leg sets a task card down: work moving forward, step by step.
+ * The mark is four task cards, one each for Plan, Track, Build and Deliver. Together they make a
+ * tick, and the last card is teal: work moving forward, step by step, until it's done.
  */
 export function LogoMark({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="shrink-0">
       <rect width="32" height="32" rx="8" className="fill-slate-900 dark:fill-slate-100" />
-      <rect x="7.5" y="7" width="4" height="18" rx="2" className="fill-white dark:fill-slate-900" />
-      <path d="M9.5 9h6a3.5 3.5 0 0 1 0 7h-4M13.5 16.5 16 23" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" className="stroke-white dark:stroke-slate-900" />
-      <rect x="19" y="19" width="6" height="6" rx="1.7" fill="#17a383" />
+      <g className="fill-white dark:fill-slate-900">
+        <rect x="4.7" y="12.2" width="5.6" height="5.6" rx="1.6" />
+        <rect x="10.7" y="18.2" width="5.6" height="5.6" rx="1.6" />
+        <rect x="16.7" y="12.2" width="5.6" height="5.6" rx="1.6" />
+      </g>
+      <rect x="22.7" y="6.2" width="5.6" height="5.6" rx="1.6" fill="#17a383" />
     </svg>
   );
 }

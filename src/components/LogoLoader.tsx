@@ -1,7 +1,7 @@
 /**
  * Ruvano's loading indicator: the logo, animated on a loop.
- * The bowl and leg of the R draw in, the teal task card drops into its slot, holds,
- * then everything lifts away and it starts again: work being set down, over and over.
+ * The four cards land one at a time and make a tick, the teal one last, then they lift away and
+ * it starts again: Plan, Track, Build, Deliver, over and over.
  *
  * Works on any background (tile follows the theme), honours reduced motion
  * (shows the finished logo with a gentle pulse instead), and announces itself to
@@ -12,10 +12,12 @@ export function LogoLoader({ size = 40, label = "Loading", className = "" }: { s
     <span role="status" aria-label={label} className={`inline-block ${className}`}>
       <svg width={size} height={size} viewBox="0 0 32 32" className="logo-loader block" aria-hidden>
         <rect width="32" height="32" rx="8" className="fill-slate-900 dark:fill-slate-100" />
-        <rect x="7.5" y="7" width="4" height="18" rx="2" className="fill-white dark:fill-slate-900" />
-        <path d="M9.5 9h6a3.5 3.5 0 0 1 0 7h-4" pathLength={1} className="ll-arm-1 stroke-white dark:stroke-slate-900" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <path d="M13.5 16.5 16 23" pathLength={1} className="ll-arm-2 stroke-white dark:stroke-slate-900" strokeWidth="4" strokeLinecap="round" fill="none" />
-        <rect x="19" y="19" width="6" height="6" rx="1.7" fill="#17a383" className="ll-card" />
+        <g className="fill-white dark:fill-slate-900">
+          <rect x="4.7" y="12.2" width="5.6" height="5.6" rx="1.6" className="ll-c1" />
+          <rect x="10.7" y="18.2" width="5.6" height="5.6" rx="1.6" className="ll-c2" />
+          <rect x="16.7" y="12.2" width="5.6" height="5.6" rx="1.6" className="ll-c3" />
+        </g>
+        <rect x="22.7" y="6.2" width="5.6" height="5.6" rx="1.6" fill="#17a383" className="ll-c4" />
       </svg>
     </span>
   );

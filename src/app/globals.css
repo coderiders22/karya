@@ -218,47 +218,53 @@
   .dark [data-tip]::after { color: var(--color-ink); background: #f4f4f2; }
 }
 
-/* ── Logo loader: arms draw → card drops in → hold → lift away → repeat (1.4s) ── */
+/* ── Logo loader: four cards land in turn → hold the tick → lift away → repeat (1.6s) ── */
 @layer components {
-  .logo-loader { --ll: 1.4s; }
-  .ll-arm-1 { stroke-dasharray: 1; animation: ll-arm-1 var(--ll) var(--ease-out-quint) infinite; }
-  .ll-arm-2 { stroke-dasharray: 1; animation: ll-arm-2 var(--ll) var(--ease-out-quint) infinite; }
-  .ll-card  { transform-box: fill-box; transform-origin: center; animation: ll-card var(--ll) infinite; }
+  .logo-loader { --ll: 1.6s; }
+  .ll-c1, .ll-c2, .ll-c3, .ll-c4 { transform-box: fill-box; transform-origin: center; animation-duration: var(--ll); animation-iteration-count: infinite; }
+  .ll-c1 { animation-name: ll-c1; }
+  .ll-c2 { animation-name: ll-c2; }
+  .ll-c3 { animation-name: ll-c3; }
+  .ll-c4 { animation-name: ll-c4; }
 
-  @keyframes ll-arm-1 {
-    0%       { stroke-dashoffset: 1; }
-    20%, 78% { stroke-dashoffset: 0; }
-    94%, 100% { stroke-dashoffset: 1; }
+  @keyframes ll-c1 {
+    0%       { opacity: 0; transform: translateY(-4px) scale(0.6); animation-timing-function: var(--ease-spring); }
+    14%, 78% { opacity: 1; transform: none; animation-timing-function: var(--ease-out-quint); }
+    92%, 100% { opacity: 0; transform: translateY(-3px) scale(0.85); }
   }
-  @keyframes ll-arm-2 {
-    0%, 10%  { stroke-dashoffset: 1; }
-    28%, 78% { stroke-dashoffset: 0; }
-    94%, 100% { stroke-dashoffset: 1; }
+  @keyframes ll-c2 {
+    0%, 10%  { opacity: 0; transform: translateY(-4px) scale(0.6); animation-timing-function: var(--ease-spring); }
+    24%, 78% { opacity: 1; transform: none; animation-timing-function: var(--ease-out-quint); }
+    92%, 100% { opacity: 0; transform: translateY(-3px) scale(0.85); }
   }
-  @keyframes ll-card {
-    0%, 26%  { opacity: 0; transform: translate(-3px, -9px) rotate(-14deg) scale(0.6); animation-timing-function: var(--ease-spring); }
-    46%, 74% { opacity: 1; transform: none; animation-timing-function: var(--ease-out-quint); }
-    92%, 100% { opacity: 0; transform: translate(2px, -6px) scale(0.85); }
+  @keyframes ll-c3 {
+    0%, 20%  { opacity: 0; transform: translateY(-4px) scale(0.6); animation-timing-function: var(--ease-spring); }
+    34%, 78% { opacity: 1; transform: none; animation-timing-function: var(--ease-out-quint); }
+    92%, 100% { opacity: 0; transform: translateY(-3px) scale(0.85); }
+  }
+  @keyframes ll-c4 {
+    0%, 30%  { opacity: 0; transform: translateY(-4px) scale(0.6); animation-timing-function: var(--ease-spring); }
+    46%, 78% { opacity: 1; transform: none; animation-timing-function: var(--ease-out-quint); }
+    92%, 100% { opacity: 0; transform: translateY(-3px) scale(0.85); }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .ll-arm-1, .ll-arm-2 { animation: none; stroke-dashoffset: 0; }
-    .ll-card { animation: ll-pulse 1.6s ease-in-out infinite; }
+    .ll-c1, .ll-c2, .ll-c3 { animation: none; }
+    .ll-c4 { animation: ll-pulse 1.6s ease-in-out infinite; }
     @keyframes ll-pulse { 50% { opacity: 0.45; } }
   }
 
-  /* Splash: the logo draws itself once and stays, then the name and taglines rise in turn. */
+  /* Splash: the four cards land once and stay, then the name and taglines rise in turn. */
   .splash { animation: splash-failsafe 0.3s ease-out 6s forwards; }
   .splash-in   { animation: splash-in 420ms var(--ease-out-quint) both; }
-  .splash .ll-arm-1 { animation: splash-draw 460ms var(--ease-out-quint) 120ms both; }
-  .splash .ll-arm-2 { animation: splash-draw 320ms var(--ease-out-quint) 420ms both; }
-  .splash .ll-card  { animation: splash-drop 480ms var(--ease-spring) 620ms both; }
+  .splash .ll-c1 { animation: splash-drop 420ms var(--ease-spring) 120ms 1 both; }
+  .splash .ll-c2 { animation: splash-drop 420ms var(--ease-spring) 270ms 1 both; }
+  .splash .ll-c3 { animation: splash-drop 420ms var(--ease-spring) 420ms 1 both; }
+  .splash .ll-c4 { animation: splash-drop 480ms var(--ease-spring) 590ms 1 both; }
   .splash-word { animation: splash-rise 420ms var(--ease-out-quint) both; }
-  @keyframes splash-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-  @keyframes splash-drop { from { opacity: 0; transform: translate(-3px, -9px) rotate(-14deg) scale(0.6); } to { opacity: 1; transform: none; } }
+  @keyframes splash-drop { from { opacity: 0; transform: translateY(-4px) scale(0.6); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) {
-    .splash-in, .splash-word, .splash .ll-card { animation: none; }
-    .splash .ll-arm-1, .splash .ll-arm-2 { animation: none; stroke-dashoffset: 0; }
+    .splash-in, .splash-word, .splash .ll-c1, .splash .ll-c2, .splash .ll-c3, .splash .ll-c4 { animation: none; }
   }
   @keyframes splash-in { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
   @keyframes splash-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
